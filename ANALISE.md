@@ -41,6 +41,20 @@ npm install
 npm run dev
 ```
 
+### Próximo passo — Domínio personalizado
+
+O domínio está na **GoDaddy**. Para apontar para o Vercel:
+
+1. Acessar o painel do Vercel: https://vercel.com/gabrielmiranda-webs-projects/app-clientes-agil/settings/domains
+2. Adicionar o domínio desejado (ex: `app.agil.com.br`)
+3. O Vercel vai fornecer os registros DNS para configurar na GoDaddy:
+   - Tipo `A` → apontando para o IP do Vercel
+   - ou tipo `CNAME` → apontando para `cname.vercel-dns.com`
+4. Acessar o painel da GoDaddy → DNS → adicionar os registros fornecidos pelo Vercel
+5. Aguardar propagação (pode levar até 48h, mas normalmente < 1h)
+
+> Pendente: definir qual domínio será usado.
+
 ---
 
 ## Visão Geral
