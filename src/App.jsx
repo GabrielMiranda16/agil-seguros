@@ -1,0 +1,113 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { CompanyProvider } from '@/contexts/CompanyContext'; // Importar CompanyProvider
+import { Toaster } from '@/components/ui/toaster';
+import ProtectedRoute from '@/components/ProtectedRoute';
+
+import LoginPage from '@/pages/Login';
+import CEODashboard from '@/pages/CEODashboard';
+import AdminDashboard from '@/pages/AdminDashboard';
+import ClientDashboard from '@/pages/ClientDashboard';
+import UnauthorizedPage from '@/pages/Unauthorized';
+import SelectCompanyPage from '@/pages/SelectCompany';
+import SolicitacoesPage from '@/pages/SolicitacoesPage';
+import CoparticipacaoPage from '@/pages/CoparticipacaoPage';
+import CoparticipacaoClientePage from '@/pages/CoparticipacaoClientePage';
+
+const AppRoutes = () => {
+  const { user } = useAuth();
+
+  const getHomeRoute = () => {
+    if (!user) return '/login';
+    switch (user.perfil) {
+      case 'CEO': return '/ceo';
+      case 'ADM': return '/admin';
+      case 'CLIENTE':
+        return '/select-company';
+      default: return '/login';
+    }
+  };
+
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/unauthorized" element={<UnauthorizedPage />} />
+
+      <Route 
+        path="/ceo" 
+        element={
+          <ProtectedRoute allowedRoles={['CEO']}>
+            <CEODashboard />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/admin" 
+        element={
+          <ProtectedRoute allowedRoles={['CEO', 'ADM']}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/solicitacoes" 
+        element={
+          <ProtectedRoute allowedRoles={['CEO', 'ADM']}>
+            <SolicitacoesPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/coparticipacao" 
+        element={
+          <ProtectedRoute allowedRoles={['CEO', 'ADM']}>
+            <CoparticipacaoPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/cliente/:empresaId" 
+        element={
+          <ProtectedRoute allowedRoles={['CEO', 'ADM', 'CLIENTE']}>
+            <ClientDashboard />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/cliente/:empresaId/coparticipacao" 
+        element={
+          <ProtectedRoute allowedRoles={['CEO', 'ADM', 'CLIENTE']}>
+            <CoparticipacaoClientePage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/select-company" 
+        element={
+          <ProtectedRoute allowedRoles={['CLIENTE', 'CEO', 'ADM']}>
+            <SelectCompanyPage />
+          </ProtectedRoute>
+        } 
+      />
+
+      <Route path="/" element={<Navigate to={getHomeRoute()} replace />} />
+      <Route path="*" element={<Navigate to={getHomeRoute()} replace />} />
+    </Routes>
+  );
+};
+
+function App() {
+  return (
+    <AuthProvider>
+      <CompanyProvider> {/* CompanyProvider envolvendo o Router */}
+        <Router>
+          <AppRoutes />
+          <Toaster />
+        </Router>
+      </CompanyProvider>
+    </AuthProvider>
+  );
+}
+
+export default App;
