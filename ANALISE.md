@@ -4,6 +4,45 @@
 
 ---
 
+## Infraestrutura e Deploy
+
+| Item | URL / Info |
+|---|---|
+| GitHub | https://github.com/GabrielMiranda16/agil-seguros |
+| Vercel (produção) | https://app-clientes-agil.vercel.app |
+| Vercel (painel) | https://vercel.com/gabrielmiranda-webs-projects/app-clientes-agil |
+| Banco de dados | Supabase — https://supabase.com (projeto: ersrbtyrwlljhkomqfpk) |
+
+### Como fazer um novo deploy
+
+Qualquer push para o branch `main` no GitHub já aciona o deploy automático no Vercel.
+
+```bash
+git add .
+git commit -m "sua mensagem"
+git push
+```
+
+### Variáveis de ambiente (Vercel)
+
+Configuradas diretamente no painel do Vercel em Settings → Environment Variables:
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+
+O arquivo `.env.local` **não vai para o GitHub** (está no .gitignore). Ao trabalhar em outro PC, crie o `.env.local` manualmente com os valores acima.
+
+### Clonar e rodar em outro PC
+
+```bash
+git clone https://github.com/GabrielMiranda16/agil-seguros.git
+cd agil-seguros
+npm install
+# crie o arquivo .env.local com as credenciais do Supabase
+npm run dev
+```
+
+---
+
 ## Visão Geral
 
 O **app-clientes-agil** é uma aplicação web de gestão de clientes para uma corretora de seguros chamada **Ágil Seguros**. Permite gerenciar empresas, beneficiários, planos (saúde, vida, odonto), solicitações e coparticipações. O sistema tem três níveis de acesso: CEO, Administrador e Cliente.
