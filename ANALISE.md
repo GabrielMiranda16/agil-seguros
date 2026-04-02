@@ -9,6 +9,7 @@
 | Item | URL / Info |
 |---|---|
 | GitHub | https://github.com/GabrielMiranda16/agil-seguros |
+| Domínio | https://segurosagil.app |
 | Vercel (produção) | https://app-clientes-agil.vercel.app |
 | Vercel (painel) | https://vercel.com/gabrielmiranda-webs-projects/app-clientes-agil |
 | Banco de dados | Supabase — https://supabase.com (projeto: ersrbtyrwlljhkomqfpk) |
@@ -53,7 +54,7 @@ O domínio está na **GoDaddy**. Para apontar para o Vercel:
 4. Acessar o painel da GoDaddy → DNS → adicionar os registros fornecidos pelo Vercel
 5. Aguardar propagação (pode levar até 48h, mas normalmente < 1h)
 
-> Pendente: definir qual domínio será usado.
+> Domínio configurado: **segurosagil.app** ✓
 
 ---
 
