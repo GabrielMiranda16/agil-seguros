@@ -120,6 +120,7 @@ const ModalFormContent = React.memo(({ formData, setFormData, age, titulares, is
     if (cep.length !== 8) { return; }
     try {
       const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      if (!response.ok) throw new Error('CEP não encontrado');
       const data = await response.json();
       if (data.erro) {
         toast({ variant: 'destructive', title: 'CEP não encontrado', description: 'Por favor, verifique o CEP digitado.' });
@@ -232,7 +233,7 @@ const ModalFormContent = React.memo(({ formData, setFormData, age, titulares, is
             <FormField id="saude_data_exclusao" label="Data Exclusão"><Input id="saude_data_exclusao" type="date" value={formData.saude_data_exclusao} onChange={handleInputChange} disabled={isCliente} /></FormField>
             <FormField id="saude_numero_carteirinha" label="Número Carteirinha"><Input id="saude_numero_carteirinha" value={formData.saude_numero_carteirinha} onChange={handleInputChange} disabled={isCliente} /></FormField>
             <FormField id="saude_link_carteirinha" label="Link Carteirinha">
-              {isCliente && formData.saude_link_carteirinha ? (
+              {isCliente && formData.saude_link_carteirinha && /^https?:\/\//i.test(formData.saude_link_carteirinha) ? (
                 <a href={formData.saude_link_carteirinha} target="_blank" rel="noopener noreferrer" className={buttonVariants({ variant: 'link', className: 'p-0 h-auto' })} >Acessar Carteirinha <ExternalLink className="ml-2 h-4 w-4" /></a>
               ) : ( <Input id="saude_link_carteirinha" type="url" value={formData.saude_link_carteirinha} onChange={handleInputChange} disabled={isCliente} /> )}
             </FormField>
@@ -253,7 +254,7 @@ const ModalFormContent = React.memo(({ formData, setFormData, age, titulares, is
             <FormField id="vida_data_exclusao" label="Data Exclusão"><Input id="vida_data_exclusao" type="date" value={formData.vida_data_exclusao} onChange={handleInputChange} disabled={isCliente} /></FormField>
             <FormField id="vida_numero_carteirinha" label="Número Carteirinha"><Input id="vida_numero_carteirinha" value={formData.vida_numero_carteirinha} onChange={handleInputChange} disabled={isCliente} /></FormField>
             <FormField id="vida_link_carteirinha" label="Link Carteirinha">
-              {isCliente && formData.vida_link_carteirinha ? (
+              {isCliente && formData.vida_link_carteirinha && /^https?:\/\//i.test(formData.vida_link_carteirinha) ? (
                 <a href={formData.vida_link_carteirinha} target="_blank" rel="noopener noreferrer" className={buttonVariants({ variant: 'link', className: 'p-0 h-auto' })} >Acessar Carteirinha <ExternalLink className="ml-2 h-4 w-4" /></a>
               ) : ( <Input id="vida_link_carteirinha" type="url" value={formData.vida_link_carteirinha} onChange={handleInputChange} disabled={isCliente} /> )}
             </FormField>
@@ -270,7 +271,7 @@ const ModalFormContent = React.memo(({ formData, setFormData, age, titulares, is
             <FormField id="odonto_data_exclusao" label="Data Exclusão"><Input id="odonto_data_exclusao" type="date" value={formData.odonto_data_exclusao} onChange={handleInputChange} disabled={isCliente} /></FormField>
             <FormField id="odonto_numero_carteirinha" label="Número Carteirinha"><Input id="odonto_numero_carteirinha" value={formData.odonto_numero_carteirinha} onChange={handleInputChange} disabled={isCliente} /></FormField>
             <FormField id="odonto_link_carteirinha" label="Link Carteirinha">
-              {isCliente && formData.odonto_link_carteirinha ? (
+              {isCliente && formData.odonto_link_carteirinha && /^https?:\/\//i.test(formData.odonto_link_carteirinha) ? (
                 <a href={formData.odonto_link_carteirinha} target="_blank" rel="noopener noreferrer" className={buttonVariants({ variant: 'link', className: 'p-0 h-auto' })} >Acessar Carteirinha <ExternalLink className="ml-2 h-4 w-4" /></a>
               ) : ( <Input id="odonto_link_carteirinha" type="url" value={formData.odonto_link_carteirinha} onChange={handleInputChange} disabled={isCliente} /> )}
             </FormField>

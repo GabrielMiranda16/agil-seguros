@@ -171,7 +171,7 @@ const SelectCompanyPage = () => {
                                 onClick={() => handleSelectCompany(company.id)}
                                 className="w-full h-full text-left p-6 rounded-lg bg-white shadow-md hover:shadow-xl transition-all duration-300 flex flex-col justify-between cursor-pointer border border-gray-200 relative"
                             >
-                                {stats.solicitacoesPendentes > 0 && (<div className="absolute top-0 right-0 -mt-2 -mr-2"><Badge className="bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center shadow-sm z-10">{stats.solicitacoesPendentes}</Badge></div>)}
+                                {stats.solicitacoesPendentes > 0 && (<div className="absolute top-0 right-0 -mt-2 -mr-2"><Badge className="bg-red-500 text-white rounded-full h-6 min-w-[24px] px-1 flex items-center justify-center shadow-sm z-10">{stats.solicitacoesPendentes}</Badge></div>)}
 
                                 <div>
                                     <div className="flex justify-between items-start mb-4">

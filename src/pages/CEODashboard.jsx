@@ -227,13 +227,13 @@ const CEODashboard = () => {
   }, [empresas, beneficiarios, users, searchTerm, statusFilter]);
 
   const todasAsEmpresas = useMemo(() => {
-    const matrices = empresas.filter(e => !e.matriz_id);
-    const filiais = empresas.filter(e => e.matriz_id);
+    const matrices = empresas.filter(e => !e.empresa_matriz_id);
+    const filiais = empresas.filter(e => e.empresa_matriz_id);
     matrices.sort((a, b) => (a.nome_fantasia || '').localeCompare(b.nome_fantasia || ''));
     const result = [];
     matrices.forEach(matriz => {
       result.push(matriz);
-      const children = filiais.filter(f => f.matriz_id === matriz.id);
+      const children = filiais.filter(f => f.empresa_matriz_id === matriz.id);
       children.sort((a, b) => (a.nome_fantasia || '').localeCompare(b.nome_fantasia || ''));
       children.forEach(child => { result.push({ ...child, isFilial: true }); });
     });

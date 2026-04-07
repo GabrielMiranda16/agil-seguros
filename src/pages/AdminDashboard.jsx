@@ -139,8 +139,7 @@ const AdminDashboard = () => {
     
     setIsSubmitting(true);
     try {
-      const matrizId = Date.now();
-      const newMatrizData = { id: matrizId, tipo: 'MATRIZ', empresa_matriz_id: null, ...newEmpresa, data_cadastro: new Date().toISOString() };
+      const newMatrizData = { tipo: 'MATRIZ', empresa_matriz_id: null, ...newEmpresa, data_cadastro: new Date().toISOString() };
       
       // Remove password fields from empresa data before creating
       const { email_cliente: _, senha_cliente: __, ...empresaPayload } = newMatrizData;

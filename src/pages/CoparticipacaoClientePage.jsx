@@ -83,7 +83,7 @@ const CoparticipacaoClientePage = () => {
   ];
 
   const years = useMemo(() => {
-    const currentYear = 2026; // Adjusted to current date context
+    const currentYear = new Date().getFullYear();
     const yearsArray = [];
     for (let i = 0; i < 6; i++) {
       yearsArray.push(currentYear - i);
