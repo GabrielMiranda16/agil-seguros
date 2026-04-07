@@ -89,8 +89,13 @@ const AdminDashboard = () => {
       setSolicitacoes(solicitacoesData);
       setUsers(usersData.data || []);
 
-      const apolicesData = await apolicesService.getAllApolices();
-      setApolices(apolicesData);
+      // Apolices query is separate — table may not exist yet
+      try {
+        const apolicesData = await apolicesService.getAllApolices();
+        setApolices(apolicesData);
+      } catch (apErr) {
+        console.warn('Tabela apolices não encontrada ou erro ao carregar:', apErr);
+      }
     } catch (error) {
       console.error("Error fetching admin dashboard data:", error);
       toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao carregar dados.' });
@@ -459,10 +464,10 @@ const AdminDashboard = () => {
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" /> Gestão de Apólices</CardTitle>
                 <div className="flex items-center gap-2 w-full md:w-auto">
-                  <Select value={selectedEmpresaApolice} onValueChange={setSelectedEmpresaApolice}>
+                  <Select value={selectedEmpresaApolice || "all"} onValueChange={v => setSelectedEmpresaApolice(v === "all" ? "" : v)}>
                     <SelectTrigger className="w-full md:w-64"><SelectValue placeholder="Filtrar por empresa" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Todas as empresas</SelectItem>
+                      <SelectItem value="all">Todas as empresas</SelectItem>
                       {matrizes.map(m => (
                         <React.Fragment key={m.id}>
                           <SelectItem value={String(m.id)}>{m.nome_fantasia || m.razao_social}</SelectItem>
