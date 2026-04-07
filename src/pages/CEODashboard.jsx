@@ -96,6 +96,8 @@ const CEODashboard = () => {
         supabaseClient.from('users').select('*') // Direct query for users management
       ]);
 
+      if (usersData.error) throw usersData.error;
+
       setEmpresas(empresasData);
       setBeneficiarios(beneficiariosData);
       setSolicitacoes(solicitacoesData);
@@ -145,7 +147,7 @@ const CEODashboard = () => {
 
   // Chart Data Computation (Same as before)
   const chartData = useMemo(() => {
-    const targetYear = 2026;
+    const targetYear = new Date().getFullYear();
     const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
     
     // Monthly Data

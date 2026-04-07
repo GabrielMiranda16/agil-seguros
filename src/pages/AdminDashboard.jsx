@@ -68,6 +68,8 @@ const AdminDashboard = () => {
         supabaseClient.from('users').select('*')
       ]);
 
+      if (usersData.error) throw usersData.error;
+
       setEmpresas(empresasData);
       setBeneficiarios(beneficiariosData);
       setSolicitacoes(solicitacoesData);

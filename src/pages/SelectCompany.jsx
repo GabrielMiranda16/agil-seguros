@@ -127,8 +127,7 @@ const SelectCompanyPage = () => {
             );
         }
         if (userCompanies.length === 1) {
-            // Use setTimeout to avoid state update during render
-            setTimeout(() => setSelectedCompanyId(userCompanies[0].id), 0);
+            setSelectedCompanyId(userCompanies[0].id);
             return <Navigate to={`/cliente/${userCompanies[0].id}`} replace />;
         }
     }
