@@ -42,6 +42,65 @@ npm install
 npm run dev
 ```
 
+### Feature: Segmentos e Apólices (branch feat/segmentos)
+
+#### Novo fluxo do cliente
+```
+Login → Selecionar Segmento → Selecionar Apólice → Dashboard do segmento
+```
+- **Saúde, Vida e Odonto** → fluxo atual (select CNPJ → beneficiários)
+- **Outros segmentos** → cards de apólices → detalhes da apólice
+
+#### Segmentos disponíveis
+| Segmento | Ícone |
+|---|---|
+| Saúde, Vida e Odonto | HeartPulse (azul) |
+| Auto e Frota | Car (laranja) |
+| Viagem | Plane (céu) |
+| Residencial | Home (verde) |
+| Pet Saúde | PawPrint (rosa) |
+| Empresarial | Building2 (roxo) |
+
+#### Banco de dados — tabela `apolices` (criar no Supabase)
+```sql
+CREATE TABLE apolices (
+  id SERIAL PRIMARY KEY,
+  empresa_id INTEGER REFERENCES empresas(id) ON DELETE CASCADE,
+  segmento TEXT NOT NULL CHECK (segmento IN ('AUTO_FROTA','VIAGEM','RESIDENCIAL','PET_SAUDE','EMPRESARIAL')),
+  numero_apolice TEXT,
+  seguradora TEXT,
+  vigencia_inicio DATE,
+  vigencia_fim DATE,
+  valor_premio DECIMAL(10,2),
+  contrato_url TEXT,
+  descricao TEXT,
+  ativo BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+#### Storage Supabase — bucket para contratos PDF
+1. Acessar Supabase → Storage → New bucket
+2. Nome: `apolices-contratos`
+3. Marcar como **Public**
+
+#### Novos arquivos criados
+- `src/services/apolicesService.js` — CRUD de apólices + upload de PDF + status de vigência
+- `src/pages/SelectSegmento.jsx` — seleção de segmento pós-login
+- `src/pages/SelectApolice.jsx` — listagem de apólices por segmento
+- `src/pages/ApoliceDashboard.jsx` — detalhes completos da apólice
+
+#### Arquivos modificados
+- `src/App.jsx` — novas rotas `/select-segmento`, `/select-apolice/:segmento`, `/apolice/:apoliceId`
+- `src/pages/AdminDashboard.jsx` — nova seção "Gestão de Apólices" com CRUD completo
+
+#### Alertas automáticos de vencimento
+- Verde: apólice ativa (mais de 30 dias)
+- Amarelo: vencendo em ≤ 30 dias
+- Vermelho: vencida
+
+---
+
 ### Próximo passo — Domínio personalizado
 
 O domínio está na **GoDaddy**. Para apontar para o Vercel:

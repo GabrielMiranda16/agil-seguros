@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Building, Plus, Trash2, ArrowRight, Search, Loader2, GitBranchPlus, Eye, Edit, Users, ChevronDown, ChevronUp, FileClock, DollarSign } from 'lucide-react';
+import { Building, Plus, Trash2, ArrowRight, Search, Loader2, GitBranchPlus, Eye, Edit, Users, ChevronDown, ChevronUp, FileClock, DollarSign, FileText, Car, Plane, Home, PawPrint, Building2, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { applyCnpjMask, applyCpfMask } from '@/lib/masks';
 
@@ -22,7 +22,10 @@ import { empresasService } from '@/services/empresasService';
 import { beneficiariosService } from '@/services/beneficiariosService';
 import { solicitacoesService } from '@/services/solicitacoesService';
 import { authService } from '@/services/authService';
+import { apolicesService, SEGMENTOS } from '@/services/apolicesService';
 import { supabaseClient } from '@/lib/supabase';
+
+const SEGMENTO_ICONS = { AUTO_FROTA: Car, VIAGEM: Plane, RESIDENCIAL: Home, PET_SAUDE: PawPrint, EMPRESARIAL: Building2 };
 
 const AdminDashboard = () => {
   const { toast } = useToast();
@@ -51,6 +54,17 @@ const AdminDashboard = () => {
   const [selectedMatriz, setSelectedMatriz] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Apólices state
+  const [apolices, setApolices] = useState([]);
+  const [isApoliceModalOpen, setIsApoliceModalOpen] = useState(false);
+  const [editingApolice, setEditingApolice] = useState(null);
+  const [selectedEmpresaApolice, setSelectedEmpresaApolice] = useState('');
+  const [apoliceForm, setApoliceForm] = useState({
+    segmento: '', numero_apolice: '', seguradora: '', vigencia_inicio: '',
+    vigencia_fim: '', valor_premio: '', descricao: '',
+  });
+  const [contratoFile, setContratoFile] = useState(null);
+
   const canManage = user.perfil === 'CEO' || user.perfil === 'ADM';
 
   const fetchData = async () => {
@@ -74,6 +88,9 @@ const AdminDashboard = () => {
       setBeneficiarios(beneficiariosData);
       setSolicitacoes(solicitacoesData);
       setUsers(usersData.data || []);
+
+      const apolicesData = await apolicesService.getAllApolices();
+      setApolices(apolicesData);
     } catch (error) {
       console.error("Error fetching admin dashboard data:", error);
       toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao carregar dados.' });
@@ -126,6 +143,81 @@ const AdminDashboard = () => {
   const handleInputChange = (e, setter) => {
     const { id, value } = e.target;
     setter(prev => ({ ...prev, [id]: id === 'cnpj' ? applyCnpjMask(value) : value }));
+  };
+
+  // --- Apólices ---
+  const apolicesFiltradas = useMemo(() => {
+    if (!selectedEmpresaApolice) return apolices;
+    return apolices.filter(a => String(a.empresa_id) === String(selectedEmpresaApolice));
+  }, [apolices, selectedEmpresaApolice]);
+
+  const openNewApolice = () => {
+    setEditingApolice(null);
+    setApoliceForm({ segmento: '', numero_apolice: '', seguradora: '', vigencia_inicio: '', vigencia_fim: '', valor_premio: '', descricao: '' });
+    setContratoFile(null);
+    setIsApoliceModalOpen(true);
+  };
+
+  const openEditApolice = (ap) => {
+    setEditingApolice(ap);
+    setApoliceForm({
+      segmento: ap.segmento || '',
+      numero_apolice: ap.numero_apolice || '',
+      seguradora: ap.seguradora || '',
+      vigencia_inicio: ap.vigencia_inicio || '',
+      vigencia_fim: ap.vigencia_fim || '',
+      valor_premio: ap.valor_premio || '',
+      descricao: ap.descricao || '',
+    });
+    setContratoFile(null);
+    setIsApoliceModalOpen(true);
+  };
+
+  const handleSaveApolice = async (e) => {
+    e.preventDefault();
+    if (!selectedEmpresaApolice) return toast({ variant: 'destructive', title: 'Selecione uma empresa' });
+    if (!apoliceForm.segmento) return toast({ variant: 'destructive', title: 'Selecione o segmento' });
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        ...apoliceForm,
+        empresa_id: Number(selectedEmpresaApolice),
+        valor_premio: apoliceForm.valor_premio ? Number(apoliceForm.valor_premio) : null,
+        ativo: true,
+      };
+
+      let saved;
+      if (editingApolice) {
+        saved = await apolicesService.updateApolice(editingApolice.id, payload);
+        setApolices(prev => prev.map(a => a.id === saved.id ? saved : a));
+      } else {
+        saved = await apolicesService.createApolice(payload);
+        setApolices(prev => [saved, ...prev]);
+      }
+
+      if (contratoFile) {
+        const url = await apolicesService.uploadContrato(contratoFile, saved.id);
+        const updated = await apolicesService.updateApolice(saved.id, { contrato_url: url });
+        setApolices(prev => prev.map(a => a.id === updated.id ? updated : a));
+      }
+
+      toast({ title: 'Sucesso', description: editingApolice ? 'Apólice atualizada.' : 'Apólice criada.' });
+      setIsApoliceModalOpen(false);
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Erro', description: err.message });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteApolice = async (id) => {
+    try {
+      await apolicesService.deleteApolice(id);
+      setApolices(prev => prev.filter(a => a.id !== id));
+      toast({ title: 'Apólice removida.' });
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Erro', description: err.message });
+    }
   };
   
   const validateAndSubmitMatriz = async (e) => {
@@ -361,6 +453,83 @@ const AdminDashboard = () => {
 
            <Card><CardHeader><CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" />Beneficiários (Visão Geral - {empresas.find(e => e.id === selectedCompanyId)?.nome_fantasia || empresas.find(e => e.id === selectedCompanyId)?.razao_social || 'Nenhuma Selecionada'})</CardTitle></CardHeader><CardContent>{beneficiariosFiltrados.length === 0 ? (<div className="text-center py-8 text-gray-500">Nenhum beneficiário encontrado para a empresa selecionada (para a empresa selecionada, se for matriz).</div>) : (<div className="rounded-md border"><div className="w-full overflow-auto"><table className="w-full text-sm text-left"><thead className="bg-gray-50 text-gray-700 font-medium border-b"><tr><th className="p-3">Nome</th><th className="p-3">CPF</th><th className="p-3">Tipo</th><th className="p-3">Empresa</th></tr></thead><tbody>{beneficiariosFiltrados.map((beneficiario) => { const empresaDoBeneficiario = empresas.find(e => e.id === beneficiario.empresa_id); return (<tr key={beneficiario.id} className="border-b last:border-0 hover:bg-gray-50"><td className="p-3 font-medium">{beneficiario.nome_completo || beneficiario.nome || 'Sem nome'}</td><td className="p-3">{applyCpfMask(beneficiario.cpf)}</td><td className="p-3"><span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${beneficiario.parentesco === 'TITULAR' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{beneficiario.parentesco}</span></td><td className="p-3 text-gray-500">{empresaDoBeneficiario?.nome_fantasia || empresaDoBeneficiario?.razao_social || 'N/A'}<span className="ml-1 text-xs text-gray-400">({empresaDoBeneficiario?.tipo})</span></td></tr>); })}</tbody></table></div></div>)}</CardContent></Card>
 
+          {/* --- Gestão de Apólices --- */}
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" /> Gestão de Apólices</CardTitle>
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                  <Select value={selectedEmpresaApolice} onValueChange={setSelectedEmpresaApolice}>
+                    <SelectTrigger className="w-full md:w-64"><SelectValue placeholder="Filtrar por empresa" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Todas as empresas</SelectItem>
+                      {matrizes.map(m => (
+                        <React.Fragment key={m.id}>
+                          <SelectItem value={String(m.id)}>{m.nome_fantasia || m.razao_social}</SelectItem>
+                          {filiais.filter(f => f.empresa_matriz_id === m.id).map(f => (
+                            <SelectItem key={f.id} value={String(f.id)} className="pl-6">↳ {f.nome_fantasia || f.razao_social}</SelectItem>
+                          ))}
+                        </React.Fragment>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {canManage && (
+                    <Button className="whitespace-nowrap bg-gradient-to-r from-blue-600 to-purple-600 text-white" onClick={openNewApolice}>
+                      <Plus className="mr-2 h-4 w-4" /> Nova Apólice
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-16 bg-gray-100 rounded animate-pulse" />)}</div>
+              ) : apolicesFiltradas.length === 0 ? (
+                <div className="text-center py-10 text-gray-400">
+                  <FileText className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                  <p>Nenhuma apólice cadastrada.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {apolicesFiltradas.map(ap => {
+                    const status = apolicesService.getStatusApolice(ap.vigencia_fim);
+                    const Icon = SEGMENTO_ICONS[ap.segmento] || FileText;
+                    const empresa = empresas.find(e => e.id === ap.empresa_id);
+                    const statusColors = { green: 'bg-green-100 text-green-800', yellow: 'bg-yellow-100 text-yellow-800', red: 'bg-red-100 text-red-800', gray: 'bg-gray-100 text-gray-600' };
+                    return (
+                      <div key={ap.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-gray-50 rounded-lg border hover:shadow-sm transition-shadow">
+                        <div className="flex items-center gap-3">
+                          <div className="bg-white p-2 rounded-lg border"><Icon className="h-5 w-5 text-gray-600" /></div>
+                          <div>
+                            <p className="font-semibold text-gray-800">Apólice {ap.numero_apolice || '—'} · {ap.seguradora || '—'}</p>
+                            <p className="text-xs text-gray-500">{SEGMENTOS[ap.segmento]?.label} · {empresa?.nome_fantasia || empresa?.razao_social || '—'}</p>
+                            <p className="text-xs text-gray-400">Vigência: {ap.vigencia_inicio || '—'} → {ap.vigencia_fim || '—'}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {(status.color === 'yellow' || status.color === 'red') && <AlertTriangle className={`h-4 w-4 ${status.color === 'red' ? 'text-red-500' : 'text-yellow-500'}`} />}
+                          <span className={`text-xs px-2 py-1 rounded-full font-medium ${statusColors[status.color]}`}>{status.label}</span>
+                          {canManage && (
+                            <>
+                              <Button variant="outline" size="icon" onClick={() => openEditApolice(ap)}><Edit className="h-4 w-4" /></Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild><Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader><AlertDialogTitle>Remover Apólice?</AlertDialogTitle><AlertDialogDescription>Esta apólice deixará de aparecer para o cliente.</AlertDialogDescription></AlertDialogHeader>
+                                  <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteApolice(ap.id)} className={buttonVariants({ variant: 'destructive' })}>Remover</AlertDialogAction></AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
         </motion.div>
       </DashboardLayout>
 
@@ -368,6 +537,79 @@ const AdminDashboard = () => {
       
       {editingEmpresa && (<Dialog open={isEditEmpresaModalOpen} onOpenChange={setIsEditEmpresaModalOpen}><DialogContent><DialogHeader><DialogTitle>Editar Cliente</DialogTitle><p className="text-sm text-muted-foreground">{editingEmpresa.nome_fantasia || editingEmpresa.razao_social}</p></DialogHeader><form onSubmit={validateAndSubmitEditMatriz}><div className="space-y-4 py-4"><div><Label htmlFor="email_cliente_edit">E-mail do Cliente *</Label><Input id="email_cliente" type="email" value={editingEmpresa.email_cliente} onChange={e => handleInputChange(e, setEditingEmpresa)} /></div><div><Label htmlFor="senha_cliente_edit">Nova Senha (opcional)</Label><Input id="senha_cliente" type="password" placeholder="Deixe em branco para manter a atual" value={editingEmpresa.senha_cliente} onChange={e => handleInputChange(e, setEditingEmpresa)} /></div></div><DialogFooter><Button type="submit" disabled={isSubmitting} className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar Alterações</Button></DialogFooter></form></DialogContent></Dialog>)}
       {canManage && selectedMatriz && (<Dialog open={isAddFilialModalOpen} onOpenChange={setIsAddFilialModalOpen}><DialogContent className="sm:max-w-lg"><DialogHeader><DialogTitle>Adicionar Nova Filial</DialogTitle><p className="text-sm text-muted-foreground">{selectedMatriz.nome_fantasia || selectedMatriz.razao_social}</p></DialogHeader><form onSubmit={validateAndSubmitFilial} className="space-y-4"><div><Label>Razão Social *</Label><Input id="razao_social" value={filialFormData.razao_social} onChange={e => handleInputChange(e, setFilialFormData)} /></div><div><Label>Nome Fantasia</Label><Input id="nome_fantasia" value={filialFormData.nome_fantasia} onChange={e => handleInputChange(e, setFilialFormData)} /></div><div><Label>CNPJ *</Label><Input id="cnpj" value={filialFormData.cnpj} onChange={e => handleInputChange(e, setFilialFormData)} /></div><div><Label>Endereço</Label><Input id="endereco_completo" value={filialFormData.endereco_completo} onChange={e => handleInputChange(e, setFilialFormData)} /></div><DialogFooter><Button type="button" variant="outline" onClick={() => setIsAddFilialModalOpen(false)}>Cancelar</Button><Button type="submit" disabled={isSubmitting} className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}<GitBranchPlus className="mr-2 h-4 w-4" />Adicionar Filial</Button></DialogFooter></form></DialogContent></Dialog>)}
+
+      {/* Modal de Apólice */}
+      <Dialog open={isApoliceModalOpen} onOpenChange={setIsApoliceModalOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader><DialogTitle>{editingApolice ? 'Editar Apólice' : 'Nova Apólice'}</DialogTitle></DialogHeader>
+          <form onSubmit={handleSaveApolice} className="space-y-4 py-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Empresa *</Label>
+                <Select value={selectedEmpresaApolice} onValueChange={setSelectedEmpresaApolice}>
+                  <SelectTrigger><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
+                  <SelectContent>
+                    {matrizes.map(m => (
+                      <React.Fragment key={m.id}>
+                        <SelectItem value={String(m.id)}>{m.nome_fantasia || m.razao_social}</SelectItem>
+                        {filiais.filter(f => f.empresa_matriz_id === m.id).map(f => (
+                          <SelectItem key={f.id} value={String(f.id)} className="pl-6">↳ {f.nome_fantasia || f.razao_social}</SelectItem>
+                        ))}
+                      </React.Fragment>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Segmento *</Label>
+                <Select value={apoliceForm.segmento} onValueChange={v => setApoliceForm(p => ({ ...p, segmento: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione o segmento" /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(SEGMENTOS).map(([key, val]) => (
+                      <SelectItem key={key} value={key}>{val.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Número da Apólice</Label>
+                <Input value={apoliceForm.numero_apolice} onChange={e => setApoliceForm(p => ({ ...p, numero_apolice: e.target.value }))} placeholder="Ex: 000123456" />
+              </div>
+              <div>
+                <Label>Seguradora</Label>
+                <Input value={apoliceForm.seguradora} onChange={e => setApoliceForm(p => ({ ...p, seguradora: e.target.value }))} placeholder="Ex: SulAmérica" />
+              </div>
+              <div>
+                <Label>Vigência Início</Label>
+                <Input type="date" value={apoliceForm.vigencia_inicio} onChange={e => setApoliceForm(p => ({ ...p, vigencia_inicio: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Vigência Fim</Label>
+                <Input type="date" value={apoliceForm.vigencia_fim} onChange={e => setApoliceForm(p => ({ ...p, vigencia_fim: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Valor do Prêmio (R$)</Label>
+                <Input type="number" step="0.01" value={apoliceForm.valor_premio} onChange={e => setApoliceForm(p => ({ ...p, valor_premio: e.target.value }))} placeholder="0,00" />
+              </div>
+              <div>
+                <Label>Contrato (PDF)</Label>
+                <Input type="file" accept=".pdf" onChange={e => setContratoFile(e.target.files?.[0] || null)} />
+              </div>
+              <div className="md:col-span-2">
+                <Label>Observações</Label>
+                <Input value={apoliceForm.descricao} onChange={e => setApoliceForm(p => ({ ...p, descricao: e.target.value }))} placeholder="Informações adicionais sobre a apólice" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsApoliceModalOpen(false)}>Cancelar</Button>
+              <Button type="submit" disabled={isSubmitting} className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {editingApolice ? 'Salvar Alterações' : 'Criar Apólice'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

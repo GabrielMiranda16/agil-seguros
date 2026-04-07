@@ -11,6 +11,9 @@ import AdminDashboard from '@/pages/AdminDashboard';
 import ClientDashboard from '@/pages/ClientDashboard';
 import UnauthorizedPage from '@/pages/Unauthorized';
 import SelectCompanyPage from '@/pages/SelectCompany';
+import SelectSegmento from '@/pages/SelectSegmento';
+import SelectApolice from '@/pages/SelectApolice';
+import ApoliceDashboard from '@/pages/ApoliceDashboard';
 import SolicitacoesPage from '@/pages/SolicitacoesPage';
 import CoparticipacaoPage from '@/pages/CoparticipacaoPage';
 import CoparticipacaoClientePage from '@/pages/CoparticipacaoClientePage';
@@ -24,7 +27,7 @@ const AppRoutes = () => {
       case 'CEO': return '/ceo';
       case 'ADM': return '/admin';
       case 'CLIENTE':
-        return '/select-company';
+        return '/select-segmento';
       default: return '/login';
     }
   };
@@ -82,13 +85,37 @@ const AppRoutes = () => {
           </ProtectedRoute>
         } 
       />
-      <Route 
-        path="/select-company" 
+      <Route
+        path="/select-company"
         element={
           <ProtectedRoute allowedRoles={['CLIENTE', 'CEO', 'ADM']}>
             <SelectCompanyPage />
           </ProtectedRoute>
-        } 
+        }
+      />
+      <Route
+        path="/select-segmento"
+        element={
+          <ProtectedRoute allowedRoles={['CLIENTE']}>
+            <SelectSegmento />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/select-apolice/:segmento"
+        element={
+          <ProtectedRoute allowedRoles={['CLIENTE']}>
+            <SelectApolice />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/apolice/:apoliceId"
+        element={
+          <ProtectedRoute allowedRoles={['CLIENTE', 'CEO', 'ADM']}>
+            <ApoliceDashboard />
+          </ProtectedRoute>
+        }
       />
 
       <Route path="/" element={<Navigate to={getHomeRoute()} replace />} />
