@@ -29,10 +29,15 @@ const SelectCompanyPage = () => {
             if (!user) return;
             
             try {
-                // Buscar beneficiários e solicitações do Supabase
+                // Buscar beneficiários e solicitações filtrados pela matriz do usuário
+                const matrizId = user.empresa_matriz_id;
                 const [beneficiariosData, solicitacoesData] = await Promise.all([
-                  supabaseClient.from('beneficiarios').select('*'),
-                  supabaseClient.from('solicitacoes').select('*')
+                  matrizId
+                    ? supabaseClient.from('beneficiarios').select('id,empresa_id,parentesco,data_exclusao').eq('empresa_matriz_id', matrizId)
+                    : supabaseClient.from('beneficiarios').select('id,empresa_id,parentesco,data_exclusao'),
+                  matrizId
+                    ? supabaseClient.from('solicitacoes').select('id,empresa_id,status').eq('empresa_id', matrizId)
+                    : supabaseClient.from('solicitacoes').select('id,empresa_id,status')
                 ]);
 
                 if (beneficiariosData.error) throw beneficiariosData.error;

@@ -69,9 +69,10 @@ export const solicitacoesService = {
 
   async updateSolicitacao(id, updateData) {
     try {
+      const cleanedData = cleanSolicitacaoData(updateData);
       const { data, error } = await supabase
         .from('solicitacoes')
-        .update(updateData)
+        .update(cleanedData)
         .eq('id', id)
         .select()
         .single();

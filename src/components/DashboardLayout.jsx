@@ -37,7 +37,9 @@ import {
 
 import { empresasService } from '@/services/empresasService';
 import { solicitacoesService } from '@/services/solicitacoesService';
+import { authService } from '@/services/authService';
 import { supabaseClient } from '@/lib/supabase';
+import bcrypt from 'bcryptjs';
 import ChatWidget from '@/components/ChatWidget';
 
 const DashboardLayout = ({ children }) => {
@@ -114,14 +116,22 @@ const DashboardLayout = ({ children }) => {
     }
   };
 
-  const handleChangePassword = (e) => {
+  const handleChangePassword = async (e) => {
     e.preventDefault();
     const userInStorage = users.find(u => String(u.id) === String(user.id));
     if (!userInStorage) {
       toast({ variant: 'destructive', title: 'Erro', description: 'Usuário não encontrado.' });
       return;
     }
-    if (oldPassword !== userInStorage.password) {
+
+    // Suporta senhas em bcrypt (novas) e texto puro (legado)
+    const storedPassword = userInStorage.password || '';
+    const isBcrypt = storedPassword.startsWith('$2');
+    const isOldCorrect = isBcrypt
+      ? await bcrypt.compare(oldPassword, storedPassword)
+      : oldPassword === storedPassword;
+
+    if (!isOldCorrect) {
       toast({ variant: 'destructive', title: 'Erro', description: 'Senha antiga incorreta.' });
       return;
     }
@@ -133,16 +143,20 @@ const DashboardLayout = ({ children }) => {
       toast({ variant: 'destructive', title: 'Erro', description: 'A confirmação não confere.' });
       return;
     }
+
     setIsPassSubmitting(true);
-    setTimeout(() => {
-      setUsers(prev => prev.map(u => String(u.id) === String(user.id) ? { ...u, password: newPassword } : u));
+    try {
+      await authService.updateUser(user.id, { password: newPassword });
       toast({ title: 'Sucesso', description: 'Senha alterada com sucesso.' });
-      setIsPassSubmitting(false);
       setIsPasswordModalOpen(false);
       setOldPassword('');
       setNewPassword('');
       setConfirmNewPassword('');
-    }, 300);
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível salvar a nova senha.' });
+    } finally {
+      setIsPassSubmitting(false);
+    }
   };
 
   const isClientDashboard = location.pathname.startsWith('/cliente/');

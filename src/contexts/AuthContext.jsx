@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { supabaseClient } from '@/lib/supabase';
+import { authService } from '@/services/authService';
 
 const AuthContext = createContext({});
 
@@ -44,20 +45,12 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const { data, error } = await supabaseClient
-        .from('users')
-        .select('*')
-        .eq('email', email)
-        .eq('password', password) // Note: In production, never store/compare plain text passwords
-        .single();
-
-      if (error || !data) {
-        return null;
-      }
+      const data = await authService.loginUser(email, password);
+      if (!data) return null;
 
       // Remove password from session object
       const { password: _, ...userSafe } = data;
-      
+
       setUser(userSafe);
       localStorage.setItem("user", JSON.stringify(userSafe));
       return userSafe;
