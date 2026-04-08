@@ -3,100 +3,70 @@ import { Helmet } from 'react-helmet';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { apolicesService, SEGMENTOS } from '@/services/apolicesService';
+import { authService } from '@/services/authService';
+import { empresasService } from '@/services/empresasService';
 import { supabaseClient } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/components/ui/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { motion } from 'framer-motion';
-import { LogOut, HeartPulse, Car, Plane, Home, PawPrint, Building2, Loader2, ChevronRight } from 'lucide-react';
+import { LogOut, HeartPulse, Car, Plane, Home, PawPrint, Building2, Package, Monitor, Loader2, User, Lock, UserCog } from 'lucide-react';
+import { applyCpfMask, applyCepMask } from '@/lib/masks';
+import bcrypt from 'bcryptjs';
 
 const SEGMENTO_CONFIG = {
-  SAUDE_VIDA_ODONTO: {
-    label: 'Saúde, Vida e Odonto',
-    descricao: 'Planos de saúde, seguro de vida e planos odontológicos',
-    icon: HeartPulse,
-    color: 'blue',
-    bg: 'bg-blue-50',
-    border: 'border-blue-200',
-    iconColor: 'text-blue-500',
-    badgeBg: 'bg-blue-100 text-blue-800',
-  },
-  AUTO_FROTA: {
-    label: 'Auto e Frota',
-    descricao: 'Proteção completa para veículos e frotas',
-    icon: Car,
-    color: 'orange',
-    bg: 'bg-orange-50',
-    border: 'border-orange-200',
-    iconColor: 'text-orange-500',
-    badgeBg: 'bg-orange-100 text-orange-800',
-  },
-  VIAGEM: {
-    label: 'Viagem',
-    descricao: 'Cobertura nacional e internacional para viagens',
-    icon: Plane,
-    color: 'sky',
-    bg: 'bg-sky-50',
-    border: 'border-sky-200',
-    iconColor: 'text-sky-500',
-    badgeBg: 'bg-sky-100 text-sky-800',
-  },
-  RESIDENCIAL: {
-    label: 'Residencial',
-    descricao: 'Proteção completa para sua residência',
-    icon: Home,
-    color: 'green',
-    bg: 'bg-green-50',
-    border: 'border-green-200',
-    iconColor: 'text-green-500',
-    badgeBg: 'bg-green-100 text-green-800',
-  },
-  PET_SAUDE: {
-    label: 'Pet Saúde',
-    descricao: 'Cuidados veterinários para seu pet',
-    icon: PawPrint,
-    color: 'pink',
-    bg: 'bg-pink-50',
-    border: 'border-pink-200',
-    iconColor: 'text-pink-500',
-    badgeBg: 'bg-pink-100 text-pink-800',
-  },
-  EMPRESARIAL: {
-    label: 'Empresarial',
-    descricao: 'Proteção para patrimônio e operações empresariais',
-    icon: Building2,
-    color: 'purple',
-    bg: 'bg-purple-50',
-    border: 'border-purple-200',
-    iconColor: 'text-purple-500',
-    badgeBg: 'bg-purple-100 text-purple-800',
-  },
+  SAUDE_VIDA_ODONTO: { label: 'Saúde, Vida e Odonto', descricao: 'Planos de saúde, seguro de vida e planos odontológicos', Icon: HeartPulse },
+  AUTO_FROTA:        { label: 'Auto e Frota',          descricao: 'Proteção completa para veículos e frotas',             Icon: Car      },
+  VIAGEM:            { label: 'Viagem',                descricao: 'Cobertura nacional e internacional para viagens',      Icon: Plane    },
+  RESIDENCIAL:       { label: 'Residencial',           descricao: 'Proteção completa para sua residência',               Icon: Home     },
+  PET_SAUDE:         { label: 'Pet Saúde',             descricao: 'Cuidados veterinários para seu pet',                  Icon: PawPrint },
+  EMPRESARIAL:       { label: 'Empresarial',           descricao: 'Proteção para patrimônio e operações empresariais',   Icon: Building2},
+  CARGAS:            { label: 'Cargas',                descricao: 'Proteção para transporte de cargas e mercadorias',    Icon: Package  },
+  EQUIPAMENTOS:      { label: 'Equipamentos',          descricao: 'Cobertura para equipamentos e maquinários',           Icon: Monitor  },
 };
+
+const logoUrl = "https://storage.googleapis.com/hostinger-horizons-assets-prod/bcb47250-76a3-434c-9312-56a9dba14a6f/247eb5219c397bb2ed2bcac42f39a442.png";
 
 const SelectSegmento = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
+
   const [loading, setLoading] = useState(true);
-  const [temEmpresa, setTemEmpresa] = useState(false);
   const [apolicesPorSegmento, setApolicesPorSegmento] = useState({});
+  const [empresa, setEmpresa] = useState(null);
+
+  // Modal senha
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isSavingPass, setIsSavingPass] = useState(false);
+
+  // Modal dados pessoais
+  const [isDadosModalOpen, setIsDadosModalOpen] = useState(false);
+  const [dadosForm, setDadosForm] = useState({});
+  const [isCepLoading, setIsCepLoading] = useState(false);
+  const [isSavingDados, setIsSavingDados] = useState(false);
+
+  const isPF = empresa?.cnpj && empresa.cnpj.replace(/\D/g, '').length === 11;
 
   useEffect(() => {
     if (!user) return;
-
     const fetchData = async () => {
       try {
-        // Verifica se tem empresa vinculada (para Saúde/Vida/Odonto)
-        if (user.empresa_matriz_id) {
-          const { data: emp } = await supabaseClient
-            .from('empresas')
-            .select('id')
-            .or(`id.eq.${user.empresa_matriz_id},empresa_matriz_id.eq.${user.empresa_matriz_id}`)
-            .limit(1);
-          setTemEmpresa((emp || []).length > 0);
-        }
+        // Support both empresa_matriz_id and empresa_id (for PF clients)
+        const empresaId = user.empresa_matriz_id || user.empresa_id;
+        if (empresaId) {
+          const [empResult, apolices] = await Promise.all([
+            supabaseClient.from('empresas').select('*').eq('id', empresaId).single(),
+            apolicesService.getApolicesByMatriz(empresaId),
+          ]);
+          if (empResult.data) setEmpresa(empResult.data);
 
-        // Busca apólices dos outros segmentos
-        if (user.empresa_matriz_id) {
-          const apolices = await apolicesService.getApolicesByMatriz(user.empresa_matriz_id);
           const agrupadas = apolices.reduce((acc, ap) => {
             if (!acc[ap.segmento]) acc[ap.segmento] = [];
             acc[ap.segmento].push(ap);
@@ -110,124 +80,285 @@ const SelectSegmento = () => {
         setLoading(false);
       }
     };
-
     fetchData();
   }, [user]);
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
   const handleSelectSegmento = (segmento) => {
-    if (segmento === 'SAUDE_VIDA_ODONTO') {
-      navigate('/select-company');
-    } else {
-      navigate(`/select-apolice/${segmento}`);
+    navigate(`/select-apolice/${segmento}`);
+  };
+
+  // --- Alterar Senha ---
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    const { data: userDb } = await supabaseClient.from('users').select('password').eq('id', user.id).single();
+    if (!userDb) return toast({ variant: 'destructive', title: 'Erro', description: 'Usuário não encontrado.' });
+
+    const stored = userDb.password || '';
+    const isBcrypt = stored.startsWith('$2');
+    const isOldCorrect = isBcrypt ? await bcrypt.compare(oldPassword, stored) : oldPassword === stored;
+
+    if (!isOldCorrect) return toast({ variant: 'destructive', title: 'Senha antiga incorreta.' });
+    if (newPassword.length < 4) return toast({ variant: 'destructive', title: 'A nova senha deve ter no mínimo 4 caracteres.' });
+    if (newPassword !== confirmPassword) return toast({ variant: 'destructive', title: 'As senhas não conferem.' });
+
+    setIsSavingPass(true);
+    try {
+      await authService.updateUser(user.id, { password: newPassword });
+      toast({ title: 'Senha alterada com sucesso.' });
+      setIsPasswordModalOpen(false);
+      setOldPassword(''); setNewPassword(''); setConfirmPassword('');
+    } catch {
+      toast({ variant: 'destructive', title: 'Erro ao salvar senha.' });
+    } finally {
+      setIsSavingPass(false);
     }
   };
 
-  // Monta lista de segmentos disponíveis
-  const segmentosDisponiveis = [];
-  if (temEmpresa) segmentosDisponiveis.push('SAUDE_VIDA_ODONTO');
-  Object.keys(SEGMENTOS).forEach(seg => {
-    if (apolicesPorSegmento[seg]?.length > 0) segmentosDisponiveis.push(seg);
-  });
+  // --- Dados Pessoais ---
+  const openDados = () => {
+    if (!empresa) return;
+    setDadosForm({
+      razao_social: empresa.razao_social || '',
+      cnpj: empresa.cnpj || '',
+      data_nascimento: empresa.data_nascimento || '',
+      endereco_completo: empresa.endereco_completo || '',
+    });
+    setIsDadosModalOpen(true);
+  };
+
+  const buscarCep = async (cep) => {
+    const nums = cep.replace(/\D/g, '');
+    if (nums.length !== 8) return;
+    setIsCepLoading(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${nums}/json/`);
+      const data = await res.json();
+      if (!data.erro) {
+        const end = `${data.logradouro}, ${data.bairro}, ${data.localidade}/${data.uf}, CEP ${cep}`;
+        setDadosForm(prev => ({ ...prev, endereco_completo: end }));
+      }
+    } catch {} finally {
+      setIsCepLoading(false);
+    }
+  };
+
+  const handleSaveDados = async (e) => {
+    e.preventDefault();
+    setIsSavingDados(true);
+    try {
+      await empresasService.updateEmpresa(empresa.id, {
+        razao_social: dadosForm.razao_social,
+        data_nascimento: dadosForm.data_nascimento || null,
+        endereco_completo: dadosForm.endereco_completo,
+      });
+      setEmpresa(prev => ({ ...prev, ...dadosForm }));
+      toast({ title: 'Dados atualizados com sucesso.' });
+      setIsDadosModalOpen(false);
+    } catch {
+      toast({ variant: 'destructive', title: 'Erro ao salvar dados.' });
+    } finally {
+      setIsSavingDados(false);
+    }
+  };
+
+  const segmentosDisponiveis = Object.keys(SEGMENTOS).filter(
+    seg => (apolicesPorSegmento[seg]?.length || 0) > 0
+  );
+
+  const empresaNome = empresa?.nome_fantasia || empresa?.razao_social || '';
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-soft-gradient">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-white" />
       </div>
     );
   }
 
-  const logoUrl = "https://horizons-cdn.hostinger.com/2e9adf63-57d2-437e-87b2-25ae49f4c5b7/dc37b5512fc0e73a5c418dd52548e59c.png";
-
   return (
     <>
-      <Helmet>
-        <title>Selecionar Segmento - Ágil Seguros</title>
-      </Helmet>
-      <div className="min-h-screen flex flex-col items-start justify-start bg-soft-gradient p-4 sm:p-8 text-gray-800">
-        <div className="w-full flex justify-between items-center mb-8">
-          <div className="flex items-center gap-4">
-            <img src={logoUrl} alt="Ágil Seguros" className="h-8 w-auto" />
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Selecione o Segmento</h1>
-              <p className="text-gray-500 text-sm">Olá, {user?.email}</p>
+      <Helmet><title>Meus Seguros - Ágil Seguros</title></Helmet>
+      <div className="min-h-screen bg-soft-gradient flex flex-col">
+
+        {/* Header */}
+        <header className="z-40" style={{ background: 'transparent' }}>
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-24">
+              <img src={logoUrl} alt="Ágil Seguros" className="h-24 w-auto object-contain" />
+              <div className="flex items-center gap-2">
+                {empresaNome && (
+                  <span className="hidden sm:block text-white/90 text-sm font-medium">{empresaNome}</span>
+                )}
+
+                {/* Menu do usuário */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10 border border-white/20">
+                      <User className="h-4 w-4 mr-2" /> Minha Conta
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-52">
+                    <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setIsPasswordModalOpen(true)} className="cursor-pointer">
+                      <Lock className="mr-2 h-4 w-4" /> Alterar Senha
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={openDados} className="cursor-pointer">
+                      <UserCog className="mr-2 h-4 w-4" />
+                      {isPF ? 'Dados Pessoais' : 'Dados da Empresa'}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 focus:text-red-600">
+                      <LogOut className="mr-2 h-4 w-4" /> Sair
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <Button variant="ghost" onClick={handleLogout} className="text-white/80 hover:text-white hover:bg-white/10 border border-white/20">
+                  <LogOut className="mr-2 h-4 w-4" /> Sair
+                </Button>
+              </div>
             </div>
           </div>
-          <Button variant="ghost" onClick={handleLogout} className="text-gray-600 hover:text-gray-900">
-            <LogOut className="mr-2 h-4 w-4" /> Sair
-          </Button>
-        </div>
+        </header>
 
-        {segmentosDisponiveis.length === 0 ? (
-          <div className="w-full flex flex-col items-center justify-center py-24 text-center">
-            <Building2 className="h-12 w-12 text-gray-300 mb-4" />
-            <h2 className="text-xl font-semibold text-gray-600">Nenhum seguro ativo</h2>
-            <p className="text-gray-400 mt-2">Entre em contato com o administrador.</p>
-            <Button onClick={handleLogout} className="mt-6" variant="outline">
-              <LogOut className="mr-2 h-4 w-4" /> Sair
-            </Button>
-          </div>
-        ) : (
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
-            className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-          >
-            {segmentosDisponiveis.map((seg) => {
-              const config = SEGMENTO_CONFIG[seg];
-              const Icon = config.icon;
-              const count = seg === 'SAUDE_VIDA_ODONTO' ? null : (apolicesPorSegmento[seg]?.length || 0);
+        {/* Content */}
+        <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <h1 className="text-2xl font-bold text-white mb-1">Meus Seguros</h1>
+          {empresaNome && <p className="text-white/70 text-sm mb-6">{empresaNome}</p>}
 
-              // Verificar se alguma apólice está vencendo
-              const apolices = apolicesPorSegmento[seg] || [];
-              const vencendo = apolices.some(ap => {
-                const status = apolicesService.getStatusApolice(ap.vigencia_fim);
-                return status.color === 'yellow' || status.color === 'red';
-              });
-
-              return (
-                <motion.div
-                  key={seg}
-                  variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
-                >
-                  <div
+          {segmentosDisponiveis.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-24 text-center">
+              <Building2 className="h-12 w-12 text-white/30 mb-4" />
+              <h2 className="text-xl font-semibold text-white">Nenhum seguro ativo</h2>
+              <p className="text-white/60 mt-2">Entre em contato com o administrador.</p>
+              <Button onClick={handleLogout} className="mt-6 border-white/30 text-white hover:bg-white/10" variant="outline">
+                <LogOut className="mr-2 h-4 w-4" /> Sair
+              </Button>
+            </div>
+          ) : (
+            <motion.div
+              initial="hidden" animate="visible"
+              variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
+              className="grid grid-cols-2 md:grid-cols-4 gap-4"
+            >
+              {segmentosDisponiveis.map((seg) => {
+                const config = SEGMENTO_CONFIG[seg];
+                if (!config) return null;
+                const { Icon, label, descricao } = config;
+                const count = apolicesPorSegmento[seg]?.length || 0;
+                return (
+                  <motion.div
+                    key={seg}
+                    variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
+                    whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                    className="bg-white border border-gray-100 rounded-3xl shadow-md p-5 flex flex-col cursor-pointer"
                     onClick={() => handleSelectSegmento(seg)}
-                    className={`relative w-full h-full p-6 rounded-xl bg-white shadow-md hover:shadow-xl transition-all duration-300 flex flex-col justify-between cursor-pointer border-2 ${config.border} hover:scale-[1.02]`}
                   >
-                    {vencendo && (
-                      <div className="absolute top-0 right-0 -mt-2 -mr-2">
-                        <Badge className="bg-yellow-500 text-white rounded-full px-2 text-xs shadow-sm">!</Badge>
-                      </div>
-                    )}
-
-                    <div>
-                      <div className={`inline-flex p-3 rounded-xl ${config.bg} mb-4`}>
-                        <Icon className={`h-7 w-7 ${config.iconColor}`} />
-                      </div>
-                      <h2 className="text-xl font-bold text-gray-800 mb-1">{config.label}</h2>
-                      <p className="text-sm text-gray-500">{config.descricao}</p>
+                    <div className="w-12 h-12 rounded-2xl bg-[#003580]/10 flex items-center justify-center mb-4">
+                      <Icon className="w-6 h-6 text-[#003580]" />
                     </div>
-
-                    <div className="flex items-center justify-between mt-6">
-                      {count !== null ? (
-                        <Badge className={config.badgeBg}>
-                          {count} {count === 1 ? 'apólice' : 'apólices'}
-                        </Badge>
-                      ) : (
-                        <Badge className={config.badgeBg}>Planos ativos</Badge>
-                      )}
-                      <ChevronRight className="h-5 w-5 text-gray-400" />
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </motion.div>
-        )}
+                    <p className="font-bold text-gray-900 text-sm leading-snug mb-1">{label}</p>
+                    <p className="text-xs text-gray-400 mb-4 flex-grow">{descricao}</p>
+                    <span className="block w-full text-center bg-[#003580] text-white text-xs font-semibold py-2 rounded-full mt-auto">
+                      {count} {count === 1 ? 'apólice' : 'apólices'}
+                    </span>
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+          )}
+        </main>
       </div>
+
+      {/* Modal Alterar Senha */}
+      <Dialog open={isPasswordModalOpen} onOpenChange={setIsPasswordModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Alterar Senha</DialogTitle></DialogHeader>
+          <form onSubmit={handleChangePassword} className="space-y-4 py-2">
+            <div><Label>Senha atual</Label><Input type="password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} /></div>
+            <div>
+              <Label>Nova senha</Label>
+              <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+              <div className="mt-2 bg-gray-50 rounded-lg p-2.5 space-y-1">
+                {[
+                  { ok: newPassword.length >= 6,           txt: 'Mínimo 6 caracteres' },
+                  { ok: /[A-Z]/.test(newPassword),         txt: '1 letra maiúscula' },
+                  { ok: /[a-z]/.test(newPassword),         txt: '1 letra minúscula' },
+                  { ok: /[0-9]/.test(newPassword),         txt: '1 número' },
+                  { ok: /[^a-zA-Z0-9]/.test(newPassword),  txt: '1 caractere especial' },
+                ].map(({ ok, txt }) => (
+                  <div key={txt} className={`flex items-center gap-1.5 text-xs ${ok ? 'text-green-600' : 'text-gray-400'}`}>
+                    <span>{ok ? '✓' : '○'}</span> {txt}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div><Label>Confirmar nova senha</Label><Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} /></div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsPasswordModalOpen(false)}>Cancelar</Button>
+              <Button type="submit" disabled={isSavingPass} className="bg-[#003580] hover:bg-[#002060] text-white">
+                {isSavingPass && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Salvar
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Dados */}
+      <Dialog open={isDadosModalOpen} onOpenChange={setIsDadosModalOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{isPF ? 'Dados Pessoais' : 'Dados da Empresa'}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveDados} className="space-y-4 py-2">
+            <div>
+              <Label>{isPF ? 'Nome Completo' : 'Razão Social'}</Label>
+              <Input value={dadosForm.razao_social || ''} onChange={e => setDadosForm(p => ({ ...p, razao_social: e.target.value }))} />
+            </div>
+            <div>
+              <Label>{isPF ? 'CPF' : 'CNPJ'}</Label>
+              <Input value={dadosForm.cnpj || ''} readOnly className="bg-gray-50 text-gray-500" />
+            </div>
+            {isPF && (
+              <div>
+                <Label>Data de Nascimento</Label>
+                <Input type="date" value={dadosForm.data_nascimento || ''} onChange={e => setDadosForm(p => ({ ...p, data_nascimento: e.target.value }))} />
+              </div>
+            )}
+            <div>
+              <Label>CEP</Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="00000-000"
+                  maxLength={9}
+                  value={dadosForm.cep_busca || ''}
+                  onChange={e => {
+                    const v = e.target.value.replace(/\D/g, '').replace(/(\d{5})(\d)/, '$1-$2');
+                    setDadosForm(p => ({ ...p, cep_busca: v }));
+                  }}
+                  onBlur={e => buscarCep(e.target.value)}
+                />
+                <Button type="button" variant="outline" disabled={isCepLoading} onClick={() => buscarCep(dadosForm.cep_busca || '')}>
+                  {isCepLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Buscar'}
+                </Button>
+              </div>
+            </div>
+            <div>
+              <Label>Endereço</Label>
+              <Input value={dadosForm.endereco_completo || ''} onChange={e => setDadosForm(p => ({ ...p, endereco_completo: e.target.value }))} />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsDadosModalOpen(false)}>Cancelar</Button>
+              <Button type="submit" disabled={isSavingDados} className="bg-[#003580] hover:bg-[#002060] text-white">
+                {isSavingDados && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Salvar
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

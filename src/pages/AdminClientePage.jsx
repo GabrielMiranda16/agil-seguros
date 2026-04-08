@@ -14,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, Building, GitBranchPlus, ChevronRight, AlertTriangle, Heart, Car, Plane, Home, PawPrint, Building2, Package, Monitor, Loader2, Users, FileText, Trash2, Edit } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { applyCnpjMask } from '@/lib/masks';
+import { applyCnpjMask, applyCpfMask } from '@/lib/masks';
 
 import { empresasService } from '@/services/empresasService';
 import { beneficiariosService } from '@/services/beneficiariosService';
@@ -24,14 +24,14 @@ import { authService } from '@/services/authService';
 import { supabaseClient } from '@/lib/supabase';
 
 const SEGMENTOS_CONFIG = [
-  { key: 'SAUDE_VIDA_ODONTO', label: 'Saúde, Vida e Odonto', slug: 'saude-vida-odonto', Icon: Heart,    color: 'from-blue-500 to-cyan-500',    bg: 'bg-blue-50',    iconColor: 'text-blue-600',    border: 'border-blue-100' },
-  { key: 'AUTO_FROTA',        label: 'Auto e Frota',          slug: 'auto-frota',        Icon: Car,      color: 'from-orange-500 to-amber-500', bg: 'bg-orange-50',  iconColor: 'text-orange-600',  border: 'border-orange-100' },
-  { key: 'VIAGEM',            label: 'Viagem',                slug: 'viagem',            Icon: Plane,    color: 'from-sky-500 to-blue-400',    bg: 'bg-sky-50',     iconColor: 'text-sky-600',     border: 'border-sky-100' },
-  { key: 'RESIDENCIAL',       label: 'Residencial',           slug: 'residencial',       Icon: Home,     color: 'from-green-500 to-emerald-500',bg: 'bg-green-50',   iconColor: 'text-green-600',   border: 'border-green-100' },
-  { key: 'PET_SAUDE',         label: 'Pet Saúde',             slug: 'pet-saude',         Icon: PawPrint, color: 'from-pink-500 to-rose-500',   bg: 'bg-pink-50',    iconColor: 'text-pink-600',    border: 'border-pink-100' },
-  { key: 'EMPRESARIAL',       label: 'Empresarial',           slug: 'empresarial',       Icon: Building2,color: 'from-purple-500 to-violet-500',bg: 'bg-purple-50',  iconColor: 'text-purple-600',  border: 'border-purple-100' },
-  { key: 'CARGAS',            label: 'Cargas',                slug: 'cargas',            Icon: Package,  color: 'from-amber-500 to-yellow-500', bg: 'bg-amber-50',   iconColor: 'text-amber-600',   border: 'border-amber-100' },
-  { key: 'EQUIPAMENTOS',      label: 'Equipamentos',          slug: 'equipamentos',      Icon: Monitor,  color: 'from-gray-500 to-slate-500',   bg: 'bg-gray-50',    iconColor: 'text-gray-600',    border: 'border-gray-100' },
+  { key: 'SAUDE_VIDA_ODONTO', label: 'Saúde, Vida e Odonto', slug: 'saude-vida-odonto', Icon: Heart    },
+  { key: 'AUTO_FROTA',        label: 'Auto e Frota',          slug: 'auto-frota',        Icon: Car      },
+  { key: 'VIAGEM',            label: 'Viagem',                slug: 'viagem',            Icon: Plane    },
+  { key: 'RESIDENCIAL',       label: 'Residencial',           slug: 'residencial',       Icon: Home     },
+  { key: 'PET_SAUDE',         label: 'Pet Saúde',             slug: 'pet-saude',         Icon: PawPrint },
+  { key: 'EMPRESARIAL',       label: 'Empresarial',           slug: 'empresarial',       Icon: Building2},
+  { key: 'CARGAS',            label: 'Cargas',                slug: 'cargas',            Icon: Package  },
+  { key: 'EQUIPAMENTOS',      label: 'Equipamentos',          slug: 'equipamentos',      Icon: Monitor  },
 ];
 
 const AdminClientePage = () => {
@@ -176,7 +176,7 @@ const AdminClientePage = () => {
 
           {/* Client Info Card */}
           <Card className="border-0 shadow-md overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-5 text-white">
+            <div className="bg-[#003580] p-5 text-white">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="bg-white/20 p-2.5 rounded-xl">
@@ -194,13 +194,18 @@ const AdminClientePage = () => {
             </div>
             <CardContent className="pt-4 pb-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-                <div><span className="text-gray-500">CNPJ</span><p className="font-medium mt-0.5">{applyCnpjMask(matriz.cnpj)}</p></div>
+                <div>
+                  <span className="text-gray-500">{matriz.cnpj && matriz.cnpj.replace(/\D/g, '').length === 11 ? 'CPF' : 'CNPJ'}</span>
+                  <p className="font-medium mt-0.5">
+                    {matriz.cnpj && matriz.cnpj.replace(/\D/g, '').length === 11 ? applyCpfMask(matriz.cnpj) : applyCnpjMask(matriz.cnpj)}
+                  </p>
+                </div>
                 {matriz.email_cliente && <div><span className="text-gray-500">E-mail de acesso</span><p className="font-medium mt-0.5 truncate">{matriz.email_cliente}</p></div>}
                 {matriz.endereco_completo && <div><span className="text-gray-500">Endereço</span><p className="font-medium mt-0.5">{matriz.endereco_completo}</p></div>}
               </div>
 
-              {/* Filiais */}
-              <div className="mt-4 border-t pt-4">
+              {/* Filiais — apenas para PJ */}
+              {!(matriz.cnpj && matriz.cnpj.replace(/\D/g, '').length === 11) && <div className="mt-4 border-t pt-4">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
                     <GitBranchPlus className="h-4 w-4 text-gray-500" />
@@ -247,44 +252,46 @@ const AdminClientePage = () => {
                     })}
                   </div>
                 )}
-              </div>
+              </div>}
             </CardContent>
           </Card>
 
           {/* Segments Grid */}
           <div>
             <h2 className="text-base font-semibold text-gray-700 mb-3">Segmentos</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {SEGMENTOS_CONFIG.map(({ key, label, slug, Icon, bg, iconColor, border }) => {
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {SEGMENTOS_CONFIG.map(({ key, label, slug, Icon }) => {
                 const count = getCountForSegmento(key);
                 const pendentes = key === 'SAUDE_VIDA_ODONTO' ? totalPendentesSVD : 0;
                 const isSVD = key === 'SAUDE_VIDA_ODONTO';
                 return (
-                  <motion.button
+                  <motion.div
                     key={key}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
+                    className="relative bg-white border border-gray-100 rounded-3xl shadow-md p-5 flex flex-col cursor-pointer"
                     onClick={() => navigate(`/admin/cliente/${matrizId}/segmento/${slug}`)}
-                    className={`relative text-left p-4 rounded-xl border ${border} ${bg} hover:shadow-md transition-all group`}
                   >
                     {pendentes > 0 && (
                       <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[11px] font-bold flex items-center justify-center shadow-sm">
                         {pendentes > 99 ? '99+' : pendentes}
                       </span>
                     )}
-                    <div className={`inline-flex p-2 rounded-lg ${bg} mb-2.5`}>
-                      <Icon className={`h-5 w-5 ${iconColor}`} />
+                    <div className="w-12 h-12 rounded-2xl bg-[#003580]/10 flex items-center justify-center mb-4">
+                      <Icon className="w-6 h-6 text-[#003580]" />
                     </div>
-                    <p className="font-semibold text-gray-800 text-sm leading-snug">{label}</p>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="font-bold text-gray-900 text-sm leading-snug mb-1">{label}</p>
+                    <p className="text-xs text-gray-400 mb-4 flex-grow">
                       {count > 0
                         ? isSVD
                           ? `${count} beneficiário${count !== 1 ? 's' : ''}`
                           : `${count} apólice${count !== 1 ? 's' : ''}`
                         : 'Nenhum cadastro'}
                     </p>
-                    <ChevronRight className="absolute bottom-3 right-3 h-4 w-4 text-gray-300 group-hover:text-gray-500 transition-colors" />
-                  </motion.button>
+                    <span className="block w-full text-center bg-[#003580] text-white text-xs font-semibold py-2 rounded-full mt-auto">
+                      Acessar
+                    </span>
+                  </motion.div>
                 );
               })}
             </div>
@@ -307,7 +314,7 @@ const AdminClientePage = () => {
             <div><Label>Endereço</Label><Input id="endereco_completo" value={filialFormData.endereco_completo} onChange={handleInputChange} /></div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsAddFilialModalOpen(false)}>Cancelar</Button>
-              <Button type="submit" disabled={isSubmitting} className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+              <Button type="submit" disabled={isSubmitting} className="bg-[#003580] hover:bg-[#002060] text-white">
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Adicionar
               </Button>

@@ -35,12 +35,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import ChatWidget from '@/components/ChatWidget';
 import { empresasService } from '@/services/empresasService';
 import { solicitacoesService } from '@/services/solicitacoesService';
 import { authService } from '@/services/authService';
+import { validatePasswordStrength } from '@/lib/userValidator';
 import { supabaseClient } from '@/lib/supabase';
 import bcrypt from 'bcryptjs';
-import ChatWidget from '@/components/ChatWidget';
 
 const DashboardLayout = ({ children }) => {
   const { user, logout } = useAuth();
@@ -98,7 +99,7 @@ const DashboardLayout = ({ children }) => {
     switch (user.perfil) {
       case 'CEO': return '/ceo';
       case 'ADM': return '/admin';
-      case 'CLIENTE': return '/select-company';
+      case 'CLIENTE': return '/select-segmento';
       default: return '/login';
     }
   };
@@ -135,8 +136,9 @@ const DashboardLayout = ({ children }) => {
       toast({ variant: 'destructive', title: 'Erro', description: 'Senha antiga incorreta.' });
       return;
     }
-    if (!newPassword || newPassword.length < 4) {
-      toast({ variant: 'destructive', title: 'Erro', description: 'A nova senha deve ter no mínimo 4 caracteres.' });
+    const passErrors = validatePasswordStrength(newPassword);
+    if (passErrors.length > 0) {
+      toast({ variant: 'destructive', title: 'Senha fraca', description: passErrors[0] });
       return;
     }
     if (newPassword !== confirmNewPassword) {
@@ -164,13 +166,17 @@ const DashboardLayout = ({ children }) => {
   const currentEmpresa = isClientDashboard ? empresas.find(e => e.id === Number(empresaId)) : null;
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col">
-      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-40">
+    <div className="min-h-screen flex flex-col bg-soft-gradient">
+      <header className="z-40" style={{ background: 'transparent' }}>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-24">
             <div className="flex items-center space-x-4">
               <Link to={getHomeLink()}>
-                <img src={logoUrl} alt="Logo Ágil Seguros" className="h-8 w-auto cursor-pointer" />
+                <img
+                  src="https://storage.googleapis.com/hostinger-horizons-assets-prod/bcb47250-76a3-434c-9312-56a9dba14a6f/247eb5219c397bb2ed2bcac42f39a442.png"
+                  alt="Ágil Seguros"
+                  className="h-24 w-auto object-contain"
+                />
               </Link>
               {currentEmpresa && (
                   <div className="hidden md:flex items-center text-sm">
@@ -183,26 +189,26 @@ const DashboardLayout = ({ children }) => {
               )}
             </div>
             <div className="flex items-center space-x-2 md:space-x-4">
-               <div className="hidden lg:flex items-center space-x-4 text-sm font-medium text-gray-600">
-                  <div className="flex items-center gap-2 bg-gray-100 px-3 py-1 rounded-full">
-                    <Calendar className="h-4 w-4 text-gray-500" />
+               <div className="hidden lg:flex items-center space-x-4 text-sm font-medium text-white/80">
+                  <div className="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full">
+                    <Calendar className="h-4 w-4 text-white/70" />
                     <span>{formattedDate}</span>
                   </div>
-                  <div className="flex items-center gap-2 bg-gray-100 px-3 py-1 rounded-full">
-                    <Clock className="h-4 w-4 text-gray-500" />
+                  <div className="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full">
+                    <Clock className="h-4 w-4 text-white/70" />
                     <span>{formattedTime} (Brasília)</span>
                   </div>
                </div>
               
               {/* Client Menu Link for Coparticipacao */}
               {isClientDashboard && empresaId && (
-                <NavLink 
+                <NavLink
                   to={`/cliente/${empresaId}/coparticipacao`}
-                  className={({ isActive }) => 
+                  className={({ isActive }) =>
                     `flex items-center p-2 rounded-lg text-sm font-medium transition-colors ${
-                      isActive 
-                        ? 'bg-blue-100 text-blue-700' 
-                        : 'text-gray-600 hover:bg-gray-100'
+                      isActive
+                        ? 'bg-white/20 text-white'
+                        : 'text-white/80 hover:bg-white/10 hover:text-white'
                     }`
                   }
                 >
@@ -212,20 +218,20 @@ const DashboardLayout = ({ children }) => {
               )}
 
               {isAdminViewingClient && (
-                 <Button variant="outline" size="sm" onClick={handleGoBack}>
-                   <ArrowLeft className="h-4 w-4 mr-0 sm:mr-2" />
-                   <span className="hidden sm:inline">Voltar</span>
-                 </Button>
+                <Button variant="ghost" size="sm" className="text-white/80 hover:text-white hover:bg-white/10 border border-white/20" onClick={handleGoBack}>
+                  <ArrowLeft className="h-4 w-4 mr-0 sm:mr-2" />
+                  <span className="hidden sm:inline">Voltar</span>
+                </Button>
               )}
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center gap-2 px-2 hover:bg-gray-100">
+                  <Button variant="ghost" className="flex items-center gap-2 px-2 hover:bg-white/10 text-white">
                     <div className="text-right hidden sm:block">
-                      <p className="text-sm font-medium">{user?.email}</p>
-                      <p className="text-xs text-blue-600 font-semibold">{user?.perfil}</p>
+                      <p className="text-sm font-medium text-white">{user?.email}</p>
+                      <p className="text-xs text-blue-200 font-semibold">{user?.perfil}</p>
                     </div>
-                    <User className="h-5 w-5 text-gray-600" />
+                    <User className="h-5 w-5 text-white/80" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
@@ -262,6 +268,7 @@ const DashboardLayout = ({ children }) => {
         {children}
       </main>
 
+      <ChatWidget />
       <Dialog open={isPasswordModalOpen} onOpenChange={setIsPasswordModalOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -275,6 +282,19 @@ const DashboardLayout = ({ children }) => {
             <div>
               <Label>Nova senha</Label>
               <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+              <div className="mt-2 bg-gray-50 rounded-lg p-2.5 space-y-1">
+                {[
+                  { ok: newPassword.length >= 6,            txt: 'Mínimo 6 caracteres' },
+                  { ok: /[A-Z]/.test(newPassword),          txt: '1 letra maiúscula' },
+                  { ok: /[a-z]/.test(newPassword),          txt: '1 letra minúscula' },
+                  { ok: /[0-9]/.test(newPassword),          txt: '1 número' },
+                  { ok: /[^a-zA-Z0-9]/.test(newPassword),   txt: '1 caractere especial' },
+                ].map(({ ok, txt }) => (
+                  <div key={txt} className={`flex items-center gap-1.5 text-xs ${ok ? 'text-green-600' : 'text-gray-400'}`}>
+                    <span>{ok ? '✓' : '○'}</span> {txt}
+                  </div>
+                ))}
+              </div>
             </div>
             <div>
               <Label>Confirmar nova senha</Label>
@@ -292,7 +312,6 @@ const DashboardLayout = ({ children }) => {
           </form>
         </DialogContent>
       </Dialog>
-      <ChatWidget />
     </div>
   );
 };

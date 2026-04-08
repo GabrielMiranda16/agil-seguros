@@ -19,6 +19,7 @@ import ApoliceDashboard from '@/pages/ApoliceDashboard';
 import SolicitacoesPage from '@/pages/SolicitacoesPage';
 import CoparticipacaoPage from '@/pages/CoparticipacaoPage';
 import CoparticipacaoClientePage from '@/pages/CoparticipacaoClientePage';
+import ForceChangePassword from '@/pages/ForceChangePassword';
 
 const AppRoutes = () => {
   const { user } = useAuth();
@@ -136,6 +137,7 @@ const AppRoutes = () => {
         }
       />
 
+      <Route path="/force-change-password" element={<ProtectedRoute allowedRoles={['CEO','ADM','CLIENTE']}><ForceChangePassword /></ProtectedRoute>} />
       <Route path="/" element={<Navigate to={getHomeRoute()} replace />} />
       <Route path="*" element={<Navigate to={getHomeRoute()} replace />} />
     </Routes>

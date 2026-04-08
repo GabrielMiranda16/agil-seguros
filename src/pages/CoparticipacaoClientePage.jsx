@@ -285,7 +285,7 @@ const CoparticipacaoClientePage = () => {
                 </CardContent>
             </Card>
 
-            <Card className="md:col-span-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white border-none shadow-md">
+            <Card className="md:col-span-2 bg-[#003580] text-white border-none shadow-md">
                 <CardHeader className="pb-2">
                     <CardTitle className="text-white flex items-center gap-2">
                         <FileText className="h-5 w-5" /> Resumo do Período

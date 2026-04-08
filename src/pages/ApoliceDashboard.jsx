@@ -2,45 +2,85 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCompany } from '@/contexts/CompanyContext';
 import { apolicesService, SEGMENTOS } from '@/services/apolicesService';
+import { beneficiariosService } from '@/services/beneficiariosService';
+import { solicitacoesService } from '@/services/solicitacoesService';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft, FileText, CalendarDays, Building, DollarSign,
   Download, AlertTriangle, CheckCircle, Clock, Loader2,
-  Car, Plane, Home, PawPrint, Building2, HeartPulse
+  Car, Plane, Home, PawPrint, Building2, HeartPulse,
+  Users, ClipboardList, ChevronRight, Package, Monitor
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const SEGMENTO_ICONS = {
-  AUTO_FROTA:  Car,
-  VIAGEM:      Plane,
-  RESIDENCIAL: Home,
-  PET_SAUDE:   PawPrint,
-  EMPRESARIAL: Building2,
+  AUTO_FROTA:        Car,
+  VIAGEM:            Plane,
+  RESIDENCIAL:       Home,
+  PET_SAUDE:         PawPrint,
+  EMPRESARIAL:       Building2,
   SAUDE_VIDA_ODONTO: HeartPulse,
+  CARGAS:            Package,
+  EQUIPAMENTOS:      Monitor,
 };
 
 const STATUS_CONFIG = {
-  green:  { icon: CheckCircle, color: 'text-green-500',  bg: 'bg-green-50',  badge: 'bg-green-100 text-green-800',  label: 'Ativa' },
-  yellow: { icon: Clock,       color: 'text-yellow-500', bg: 'bg-yellow-50', badge: 'bg-yellow-100 text-yellow-800', label: 'Vencendo em breve' },
-  red:    { icon: AlertTriangle, color: 'text-red-500',  bg: 'bg-red-50',    badge: 'bg-red-100 text-red-800',      label: 'Vencida' },
-  gray:   { icon: FileText,    color: 'text-gray-400',   bg: 'bg-gray-50',   badge: 'bg-gray-100 text-gray-600',    label: 'Sem vigência' },
+  green:  { icon: CheckCircle,   color: 'text-green-500',  bg: 'bg-green-50',  badge: 'bg-green-100 text-green-800',  label: 'Ativa' },
+  yellow: { icon: Clock,         color: 'text-yellow-500', bg: 'bg-yellow-50', badge: 'bg-yellow-100 text-yellow-800', label: 'Vencendo em breve' },
+  red:    { icon: AlertTriangle, color: 'text-red-500',    bg: 'bg-red-50',    badge: 'bg-red-100 text-red-800',      label: 'Vencida' },
+  gray:   { icon: FileText,      color: 'text-gray-400',   bg: 'bg-gray-50',   badge: 'bg-gray-100 text-gray-600',    label: 'Sem vigência' },
+};
+
+const STATUS_SOL_COLORS = {
+  'PENDENTE':          'bg-yellow-100 text-yellow-800',
+  'EM PROCESSAMENTO':  'bg-blue-100 text-blue-800',
+  'CONCLUIDA':         'bg-green-100 text-green-800',
+  'REJEITADA':         'bg-red-100 text-red-800',
 };
 
 const ApoliceDashboard = () => {
   const { apoliceId } = useParams();
   const { user } = useAuth();
+  const { setSelectedCompanyId } = useCompany();
   const navigate = useNavigate();
+
+  const isAdmin = user?.perfil === 'CEO' || user?.perfil === 'ADM';
+  const isCliente = user?.perfil === 'CLIENTE';
+  const showTabs = isAdmin || isCliente;
+
   const [loading, setLoading] = useState(true);
   const [apolice, setApolice] = useState(null);
+  const [beneficiarios, setBeneficiarios] = useState([]);
+  const [solicitacoes, setSolicitacoes] = useState([]);
+  const [loadingBen, setLoadingBen] = useState(false);
+  const [loadingSol, setLoadingSol] = useState(false);
+
+  const logoUrl = "https://storage.googleapis.com/hostinger-horizons-assets-prod/bcb47250-76a3-434c-9312-56a9dba14a6f/247eb5219c397bb2ed2bcac42f39a442.png";
 
   useEffect(() => {
     apolicesService.getApolice(apoliceId)
-      .then(setApolice)
+      .then(async (ap) => {
+        setApolice(ap);
+        if (ap?.empresa_id) {
+          setLoadingBen(true);
+          setLoadingSol(true);
+          const [ben, sol] = await Promise.all([
+            beneficiariosService.getBeneficiariosByEmpresa(ap.empresa_id).catch(() => []),
+            solicitacoesService.getSolicitacoesByEmpresa(ap.empresa_id).catch(() => []),
+          ]);
+          setBeneficiarios(ben);
+          setSolicitacoes(sol);
+          setLoadingBen(false);
+          setLoadingSol(false);
+        }
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [apoliceId]);
@@ -55,10 +95,15 @@ const ApoliceDashboard = () => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
   };
 
+  const goToCoparticipacao = () => {
+    setSelectedCompanyId(Number(apolice.empresa_id));
+    navigate('/coparticipacao');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-soft-gradient">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-white" />
       </div>
     );
   }
@@ -66,9 +111,9 @@ const ApoliceDashboard = () => {
   if (!apolice) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-soft-gradient">
-        <FileText className="h-12 w-12 text-gray-300 mb-4" />
-        <p className="text-gray-500">Apólice não encontrada.</p>
-        <Button className="mt-4" onClick={() => navigate(-1)}>Voltar</Button>
+        <FileText className="h-12 w-12 text-white/30 mb-4" />
+        <p className="text-white/70">Apólice não encontrada.</p>
+        <Button className="mt-4 border-white/30 text-white hover:bg-white/10" variant="outline" onClick={() => navigate(-1)}>Voltar</Button>
       </div>
     );
   }
@@ -79,162 +124,292 @@ const ApoliceDashboard = () => {
   const SegIcon = SEGMENTO_ICONS[apolice.segmento] || FileText;
   const segLabel = SEGMENTOS[apolice.segmento]?.label || apolice.segmento;
 
+  const pendentes = solicitacoes.filter(s => s.status === 'PENDENTE' || s.status === 'EM PROCESSAMENTO').length;
+
   return (
     <>
       <Helmet>
         <title>Apólice {apolice.numero_apolice || apoliceId} - Ágil Seguros</title>
       </Helmet>
-      <div className="min-h-screen bg-soft-gradient p-4 sm:p-8">
+      <div className="min-h-screen bg-soft-gradient flex flex-col">
+
         {/* Header */}
-        <div className="flex items-center gap-3 mb-8">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex items-center gap-3">
-            <div className="bg-white p-2 rounded-lg shadow-sm">
-              <SegIcon className="h-6 w-6 text-gray-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">{segLabel}</p>
-              <h1 className="text-2xl font-bold text-gray-800">
-                Apólice {apolice.numero_apolice || '—'}
-              </h1>
+        <header className="z-40" style={{ background: 'transparent' }}>
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-24">
+              <div className="flex items-center gap-3">
+                <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="text-white/80 hover:text-white hover:bg-white/10">
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+                <img src={logoUrl} alt="Ágil Seguros" className="h-24 w-auto object-contain" />
+              </div>
+              <div className="flex items-center gap-2 text-white/80 text-sm">
+                <SegIcon className="h-4 w-4" />
+                <span className="hidden sm:inline">{segLabel}</span>
+              </div>
             </div>
           </div>
-        </div>
+        </header>
 
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-3xl mx-auto space-y-6"
-        >
-          {/* Status Alert */}
-          {(status.color === 'yellow' || status.color === 'red') && (
-            <div className={`${statusCfg.bg} border border-${status.color === 'red' ? 'red' : 'yellow'}-200 rounded-xl p-4 flex items-center gap-3`}>
-              <StatusIcon className={`h-5 w-5 ${statusCfg.color} flex-shrink-0`} />
-              <div>
-                <p className={`font-semibold ${statusCfg.color}`}>{statusCfg.label}</p>
-                <p className="text-sm text-gray-600">
-                  {status.color === 'red'
-                    ? `Esta apólice venceu há ${Math.abs(status.dias)} dias. Entre em contato com o administrador.`
-                    : `Esta apólice vence em ${status.dias} dias. Entre em contato para renovação.`}
-                </p>
-              </div>
-            </div>
-          )}
+        <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <h1 className="text-2xl font-bold text-white mb-6">
+            Apólice {apolice.numero_apolice || '—'}
+          </h1>
 
-          {/* Dados Principais */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <FileText className="h-4 w-4" /> Dados da Apólice
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Número da Apólice</p>
-                <p className="font-semibold text-gray-800">{apolice.numero_apolice || '—'}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Seguradora</p>
-                <div className="flex items-center gap-2">
-                  <Building className="h-4 w-4 text-gray-400" />
-                  <p className="font-semibold text-gray-800">{apolice.seguradora || '—'}</p>
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <Tabs defaultValue="dados" className="space-y-4">
+              <TabsList className={`bg-white/10 ${showTabs ? 'grid grid-cols-4' : 'grid grid-cols-1'} w-full`}>
+                <TabsTrigger value="dados" className="text-white/80 data-[state=active]:bg-white data-[state=active]:text-[#003580]">
+                  <FileText className="h-4 w-4 mr-1.5" /> Apólice
+                </TabsTrigger>
+                {showTabs && (
+                  <>
+                    <TabsTrigger value="beneficiarios" className="text-white/80 data-[state=active]:bg-white data-[state=active]:text-[#003580]">
+                      <Users className="h-4 w-4 mr-1.5" />
+                      Beneficiários
+                      {isAdmin && !loadingBen && <span className="ml-1.5 bg-white/20 text-white text-xs px-1.5 py-0.5 rounded-full">{beneficiarios.length}</span>}
+                    </TabsTrigger>
+                    <TabsTrigger value="solicitacoes" className="text-white/80 data-[state=active]:bg-white data-[state=active]:text-[#003580]">
+                      <ClipboardList className="h-4 w-4 mr-1.5" />
+                      Solicitações
+                      {isAdmin && pendentes > 0 && <span className="ml-1.5 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">{pendentes}</span>}
+                    </TabsTrigger>
+                    <TabsTrigger value="coparticipacao" className="text-white/80 data-[state=active]:bg-white data-[state=active]:text-[#003580]">
+                      <DollarSign className="h-4 w-4 mr-1.5" /> Coparticipação
+                    </TabsTrigger>
+                  </>
+                )}
+              </TabsList>
+
+              {/* Tab: Dados da Apólice */}
+              <TabsContent value="dados">
+                <div className="max-w-3xl space-y-4">
+                  {(status.color === 'yellow' || status.color === 'red') && (
+                    <div className={`${statusCfg.bg} border rounded-xl p-4 flex items-center gap-3`}>
+                      <StatusIcon className={`h-5 w-5 ${statusCfg.color} flex-shrink-0`} />
+                      <div>
+                        <p className={`font-semibold ${statusCfg.color}`}>{statusCfg.label}</p>
+                        <p className="text-sm text-gray-600">
+                          {status.color === 'red'
+                            ? `Esta apólice venceu há ${Math.abs(status.dias)} dias.`
+                            : `Esta apólice vence em ${status.dias} dias.`}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  <Card>
+                    <CardHeader><CardTitle className="flex items-center gap-2 text-base"><FileText className="h-4 w-4" /> Dados da Apólice</CardTitle></CardHeader>
+                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      <div>
+                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Número da Apólice</p>
+                        <p className="font-semibold text-gray-800">{apolice.numero_apolice || '—'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Seguradora</p>
+                        <div className="flex items-center gap-2">
+                          <Building className="h-4 w-4 text-gray-400" />
+                          <p className="font-semibold text-gray-800">{apolice.seguradora || '—'}</p>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Status</p>
+                        <Badge className={statusCfg.badge}><StatusIcon className="h-3 w-3 mr-1" />{statusCfg.label}</Badge>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Segmento</p>
+                        <p className="font-semibold text-gray-800">{segLabel}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {(apolice.vigencia_inicio || apolice.vigencia_fim) && (
+                    <Card>
+                      <CardHeader><CardTitle className="flex items-center gap-2 text-base"><CalendarDays className="h-4 w-4" /> Vigência</CardTitle></CardHeader>
+                      <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div>
+                          <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Início</p>
+                          <p className="font-semibold text-gray-800">{formatDate(apolice.vigencia_inicio)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Término</p>
+                          <p className={`font-semibold ${status.color === 'red' ? 'text-red-600' : status.color === 'yellow' ? 'text-yellow-600' : 'text-gray-800'}`}>
+                            {formatDate(apolice.vigencia_fim)}
+                          </p>
+                        </div>
+                        {status.dias !== undefined && (
+                          <div className="sm:col-span-2">
+                            <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Dias restantes</p>
+                            <p className={`font-semibold ${status.color === 'red' ? 'text-red-600' : status.color === 'yellow' ? 'text-yellow-600' : 'text-green-600'}`}>
+                              {status.color === 'red' ? `Vencida há ${Math.abs(status.dias)} dias` : `${status.dias} dias`}
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {apolice.valor_premio && (
+                    <Card>
+                      <CardHeader><CardTitle className="flex items-center gap-2 text-base"><DollarSign className="h-4 w-4" /> Valor</CardTitle></CardHeader>
+                      <CardContent>
+                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Prêmio</p>
+                        <p className="text-2xl font-bold text-gray-800">{formatCurrency(apolice.valor_premio)}</p>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {apolice.descricao && (
+                    <Card>
+                      <CardHeader><CardTitle className="text-base">Observações</CardTitle></CardHeader>
+                      <CardContent><p className="text-gray-600 text-sm leading-relaxed">{apolice.descricao}</p></CardContent>
+                    </Card>
+                  )}
+
+                  <Card>
+                    <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Download className="h-4 w-4" /> Contrato</CardTitle></CardHeader>
+                    <CardContent>
+                      {apolice.contrato_url ? (
+                        <a href={apolice.contrato_url} target="_blank" rel="noopener noreferrer">
+                          <Button className="w-full sm:w-auto"><Download className="mr-2 h-4 w-4" />Baixar Contrato (PDF)</Button>
+                        </a>
+                      ) : (
+                        <p className="text-sm text-gray-400">Nenhum contrato disponível. Entre em contato com o administrador.</p>
+                      )}
+                    </CardContent>
+                  </Card>
                 </div>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Status</p>
-                <Badge className={statusCfg.badge}>
-                  <StatusIcon className="h-3 w-3 mr-1" />
-                  {statusCfg.label}
-                </Badge>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Segmento</p>
-                <p className="font-semibold text-gray-800">{segLabel}</p>
-              </div>
-            </CardContent>
-          </Card>
+              </TabsContent>
 
-          {/* Vigência */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <CalendarDays className="h-4 w-4" /> Vigência
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Início</p>
-                <p className="font-semibold text-gray-800">{formatDate(apolice.vigencia_inicio)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Término</p>
-                <p className={`font-semibold ${status.color === 'red' ? 'text-red-600' : status.color === 'yellow' ? 'text-yellow-600' : 'text-gray-800'}`}>
-                  {formatDate(apolice.vigencia_fim)}
-                </p>
-              </div>
-              {status.dias !== undefined && (
-                <div className="sm:col-span-2">
-                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Dias restantes</p>
-                  <p className={`font-semibold ${status.color === 'red' ? 'text-red-600' : status.color === 'yellow' ? 'text-yellow-600' : 'text-green-600'}`}>
-                    {status.color === 'red' ? `Vencida há ${Math.abs(status.dias)} dias` : `${status.dias} dias`}
-                  </p>
-                </div>
+              {/* Tab: Beneficiários */}
+              {showTabs && (
+                <TabsContent value="beneficiarios">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <Users className="h-4 w-4" /> Beneficiários
+                      </CardTitle>
+                      <Button size="sm" className="bg-[#003580] hover:bg-[#002060] text-white" onClick={() => navigate(`/cliente/${apolice.empresa_id}`)}>
+                        {isAdmin ? 'Gerenciar' : 'Ver'} <ChevronRight className="ml-1 h-4 w-4" />
+                      </Button>
+                    </CardHeader>
+                    <CardContent>
+                      {loadingBen ? (
+                        <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div>
+                      ) : beneficiarios.length === 0 ? (
+                        <div className="text-center py-8 text-gray-400">
+                          <Users className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                          <p className="text-sm">Nenhum beneficiário cadastrado.</p>
+                          <Button size="sm" className="mt-3 bg-[#003580] hover:bg-[#002060] text-white" onClick={() => navigate(`/cliente/${apolice.empresa_id}`)}>
+                            {isAdmin ? 'Adicionar Beneficiário' : 'Ver detalhes'}
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {beneficiarios.slice(0, 10).map(b => (
+                            <div key={b.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border text-sm">
+                              <div>
+                                <p className="font-medium text-gray-800">{b.nome_completo}</p>
+                                <p className="text-xs text-gray-400">{b.cpf || '—'} · {b.tipo_beneficiario || '—'}</p>
+                              </div>
+                              <Badge variant="outline" className={b.data_exclusao ? 'text-red-600' : 'text-green-600'}>
+                                {b.data_exclusao ? 'Inativo' : 'Ativo'}
+                              </Badge>
+                            </div>
+                          ))}
+                          {beneficiarios.length > 10 && (
+                            <p className="text-xs text-gray-400 text-center pt-1">+{beneficiarios.length - 10} outros</p>
+                          )}
+                          <Button size="sm" variant="outline" className="w-full mt-2" onClick={() => navigate(`/cliente/${apolice.empresa_id}`)}>
+                            Ver todos {isAdmin && 'e gerenciar'} <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
               )}
-            </CardContent>
-          </Card>
 
-          {/* Valor */}
-          {apolice.valor_premio && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <DollarSign className="h-4 w-4" /> Valor
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div>
-                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Prêmio</p>
-                  <p className="text-2xl font-bold text-gray-800">{formatCurrency(apolice.valor_premio)}</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Descrição */}
-          {apolice.descricao && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Observações</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 text-sm leading-relaxed">{apolice.descricao}</p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Contrato */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Download className="h-4 w-4" /> Contrato
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {apolice.contrato_url ? (
-                <a href={apolice.contrato_url} target="_blank" rel="noopener noreferrer">
-                  <Button className="w-full sm:w-auto">
-                    <Download className="mr-2 h-4 w-4" />
-                    Baixar Contrato (PDF)
-                  </Button>
-                </a>
-              ) : (
-                <p className="text-sm text-gray-400">Nenhum contrato disponível. Entre em contato com o administrador.</p>
+              {/* Tab: Solicitações */}
+              {showTabs && (
+                <TabsContent value="solicitacoes">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <ClipboardList className="h-4 w-4" /> Solicitações
+                        {isAdmin && pendentes > 0 && <span className="ml-1 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{pendentes} pendente{pendentes !== 1 ? 's' : ''}</span>}
+                      </CardTitle>
+                      <Button size="sm" className="bg-[#003580] hover:bg-[#002060] text-white" onClick={() => {
+                        if (isAdmin) { setSelectedCompanyId(Number(apolice.empresa_id)); navigate('/solicitacoes'); }
+                        else navigate(`/cliente/${apolice.empresa_id}`);
+                      }}>
+                        {isAdmin ? 'Gerenciar' : 'Ver'} <ChevronRight className="ml-1 h-4 w-4" />
+                      </Button>
+                    </CardHeader>
+                    <CardContent>
+                      {loadingSol ? (
+                        <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div>
+                      ) : solicitacoes.length === 0 ? (
+                        <div className="text-center py-8 text-gray-400">
+                          <ClipboardList className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                          <p className="text-sm">Nenhuma solicitação registrada.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {solicitacoes.slice(0, 10).map(s => (
+                            <div key={s.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border text-sm">
+                              <div>
+                                <p className="font-medium text-gray-800">{s.tipo_solicitacao}</p>
+                                <p className="text-xs text-gray-400">{s.beneficiarios?.nome_completo || '—'}</p>
+                              </div>
+                              <Badge className={STATUS_SOL_COLORS[s.status] || 'bg-gray-100 text-gray-600'}>{s.status}</Badge>
+                            </div>
+                          ))}
+                          {solicitacoes.length > 10 && (
+                            <p className="text-xs text-gray-400 text-center pt-1">+{solicitacoes.length - 10} outras</p>
+                          )}
+                          <Button size="sm" variant="outline" className="w-full mt-2" onClick={() => {
+                            if (isAdmin) { setSelectedCompanyId(Number(apolice.empresa_id)); navigate('/solicitacoes'); }
+                            else navigate(`/cliente/${apolice.empresa_id}`);
+                          }}>
+                            Ver {isAdmin && 'todas e'} gerenciar <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
               )}
-            </CardContent>
-          </Card>
-        </motion.div>
+
+              {/* Tab: Coparticipação */}
+              {showTabs && (
+                <TabsContent value="coparticipacao">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <DollarSign className="h-4 w-4" /> Coparticipação
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-center py-8">
+                        <DollarSign className="h-12 w-12 text-[#003580]/20 mx-auto mb-3" />
+                        <p className="text-gray-600 text-sm mb-4">
+                          {isAdmin ? 'Gerencie os lançamentos de coparticipação desta empresa.' : 'Consulte os lançamentos de coparticipação.'}
+                        </p>
+                        <Button className="bg-[#003580] hover:bg-[#002060] text-white" onClick={() => {
+                          if (isAdmin) goToCoparticipacao();
+                          else navigate(`/cliente/${apolice.empresa_id}/coparticipacao`);
+                        }}>
+                          <DollarSign className="mr-2 h-4 w-4" /> Acessar Coparticipação
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              )}
+            </Tabs>
+          </motion.div>
+        </main>
       </div>
     </>
   );

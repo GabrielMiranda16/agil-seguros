@@ -94,16 +94,17 @@ const AdminSegmentoPage = () => {
         setFiliais(filiaisData);
         setSolicitacoes(todasSolicitacoes.filter(s => todasIds.includes(Number(s.empresa_id))));
 
+        // Always load apólices for all segments (including SVD)
+        try {
+          const apData = await apolicesService.getApolicesByMatriz(id);
+          setApolices(apData.filter(a => a.segmento === segConfig.key));
+        } catch (e) {
+          console.warn('Tabela apolices não encontrada:', e);
+        }
+
         if (isSVD) {
           const benData = await beneficiariosService.getAllBeneficiarios();
           setBeneficiarios(benData.filter(b => todasIds.includes(b.empresa_id) && !b.data_exclusao));
-        } else {
-          try {
-            const apData = await apolicesService.getApolicesByMatriz(id);
-            setApolices(apData.filter(a => a.segmento === segConfig.key));
-          } catch (e) {
-            console.warn('Tabela apolices não encontrada:', e);
-          }
         }
       } catch (err) {
         toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao carregar dados.' });
@@ -263,7 +264,7 @@ const AdminSegmentoPage = () => {
             return (
               <Card key={empresa.id} className="border shadow-sm overflow-hidden">
                 {/* Empresa Header */}
-                <div className={`px-5 py-3.5 border-b flex items-center justify-between gap-3 ${empresa.isMatriz ? 'bg-gradient-to-r from-blue-50 to-indigo-50' : 'bg-gray-50'}`}>
+                <div className={`px-5 py-3.5 border-b flex items-center justify-between gap-3 ${empresa.isMatriz ? 'bg-[#f0f7ff]' : 'bg-gray-50'}`}>
                   <div className="flex items-center gap-2.5">
                     <Building className={`h-4 w-4 ${empresa.isMatriz ? 'text-blue-600' : 'text-gray-500'}`} />
                     <div>
@@ -282,66 +283,46 @@ const AdminSegmentoPage = () => {
                 </div>
 
                 <CardContent className="pt-4 pb-4">
-                  {/* SVD: show beneficiários info + action buttons */}
+                  {/* All segments (including SVD): list apólices first */}
                   {isSVD ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
-                        <span className="flex items-center gap-1.5">
-                          <Users className="h-4 w-4 text-blue-500" />
-                          <strong>{empBeneficiarios.length}</strong> beneficiário{empBeneficiarios.length !== 1 ? 's' : ''}
-                        </span>
-                        {pendentes > 0 && (
-                          <span className="flex items-center gap-1.5 text-red-600">
-                            <AlertTriangle className="h-4 w-4" />
-                            <strong>{pendentes}</strong> solicitaç{pendentes !== 1 ? 'ões' : 'ão'} pendente{pendentes !== 1 ? 's' : ''}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        <Button
-                          size="sm"
-                          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-                          onClick={() => navigate(`/cliente/${empresa.id}`)}
-                        >
-                          <Users className="mr-1.5 h-4 w-4" /> Beneficiários
-                        </Button>
-                        {pendentes > 0 && (
-                          <Button size="sm" variant="outline" className="border-red-200 text-red-700 hover:bg-red-50" onClick={() => goToSolicitacoes(empresa.id)}>
-                            <FileClock className="mr-1.5 h-4 w-4" /> Solicitações
-                            <span className="ml-1.5 bg-red-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5">{pendentes}</span>
-                          </Button>
-                        )}
-                        <Button size="sm" variant="outline" onClick={() => goToCoparticipacao(empresa.id)}>
-                          <DollarSign className="mr-1.5 h-4 w-4" /> Coparticipação
-                        </Button>
-                      </div>
-
-                      {/* Apólice SVD (número + seguradora) */}
-                      {empApolices.length > 0 && (
-                        <div className="mt-3 pt-3 border-t">
-                          <p className="text-xs font-medium text-gray-500 mb-2">Apólice registrada</p>
-                          {empApolices.map(ap => (
-                            <div key={ap.id} className="flex items-center justify-between p-2.5 bg-blue-50 rounded-lg text-sm">
-                              <div>
-                                <span className="font-semibold text-gray-800">Apólice {ap.numero_apolice || '—'}</span>
-                                {ap.seguradora && <span className="ml-2 text-gray-500">· {ap.seguradora}</span>}
-                              </div>
+                    <div className="space-y-2">
+                      {empApolices.length === 0 ? (
+                        <div className="text-center py-6 text-gray-400">
+                          <FileText className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                          <p className="text-sm">Nenhuma apólice cadastrada. Registre uma apólice para acessar Beneficiários, Solicitações e Coparticipação.</p>
+                        </div>
+                      ) : (
+                        empApolices.map(ap => (
+                          <div key={ap.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-blue-50 rounded-xl border border-blue-100 hover:shadow-sm transition-shadow">
+                            <div>
+                              <p className="font-semibold text-gray-800 text-sm">
+                                {ap.numero_apolice ? `Apólice ${ap.numero_apolice}` : 'Apólice sem número'}
+                                {ap.seguradora && <span className="ml-1.5 text-gray-500 font-normal">· {ap.seguradora}</span>}
+                              </p>
+                              <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-3">
+                                <span className="flex items-center gap-1"><Users className="h-3 w-3" /> Beneficiários, Solicitações e Coparticipação disponíveis dentro</span>
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <Button size="sm" className="bg-[#003580] hover:bg-[#002060] text-white" onClick={() => navigate(`/apolice/${ap.id}`)}>
+                                Acessar
+                              </Button>
                               {canManage && (
-                                <div className="flex gap-1">
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditApolice(ap)}><Edit className="h-3.5 w-3.5" /></Button>
+                                <>
+                                  <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => openEditApolice(ap)}><Edit className="h-3.5 w-3.5" /></Button>
                                   <AlertDialog>
-                                    <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-600"><Trash2 className="h-3.5 w-3.5" /></Button></AlertDialogTrigger>
+                                    <AlertDialogTrigger asChild><Button variant="outline" size="icon" className="h-7 w-7 text-red-500 hover:text-red-700"><Trash2 className="h-3.5 w-3.5" /></Button></AlertDialogTrigger>
                                     <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Remover apólice?</AlertDialogTitle></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteApolice(ap.id)} className={buttonVariants({ variant: 'destructive' })}>Remover</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
                                   </AlertDialog>
-                                </div>
+                                </>
                               )}
                             </div>
-                          ))}
-                        </div>
+                          </div>
+                        ))
                       )}
-                      {canManage && empApolices.length === 0 && (
-                        <Button size="sm" variant="outline" className="mt-1" onClick={() => openNewApolice(empresa.id)}>
-                          <Plus className="mr-1.5 h-3.5 w-3.5" /> Registrar apólice
+                      {canManage && (
+                        <Button size="sm" variant="outline" className="mt-1 w-full border-dashed" onClick={() => openNewApolice(empresa.id)}>
+                          <Plus className="mr-1.5 h-3.5 w-3.5" /> {empApolices.length === 0 ? 'Registrar Apólice' : 'Nova Apólice'}
                         </Button>
                       )}
                     </div>
@@ -475,7 +456,7 @@ const AdminSegmentoPage = () => {
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsApoliceModalOpen(false)}>Cancelar</Button>
-              <Button type="submit" disabled={isSubmitting} className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+              <Button type="submit" disabled={isSubmitting} className="bg-[#003580] hover:bg-[#002060] text-white">
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {editingApolice ? 'Salvar' : 'Criar Apólice'}
               </Button>

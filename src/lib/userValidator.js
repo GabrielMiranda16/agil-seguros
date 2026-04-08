@@ -1,3 +1,13 @@
+export const validatePasswordStrength = (password) => {
+  const errors = [];
+  if (!password || password.length < 6) errors.push('Mínimo 6 caracteres');
+  if (!/[0-9]/.test(password)) errors.push('Pelo menos 1 número');
+  if (!/[a-z]/.test(password)) errors.push('Pelo menos 1 letra minúscula');
+  if (!/[A-Z]/.test(password)) errors.push('Pelo menos 1 letra maiúscula');
+  if (!/[^a-zA-Z0-9]/.test(password)) errors.push('Pelo menos 1 caractere especial (!@#$%...)');
+  return errors;
+};
+
 export const validateEmail = (email) => {
   const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return re.test(String(email).toLowerCase());
@@ -20,6 +30,7 @@ export const cleanUserData = (data) => {
     empresa_id: number(data.empresa_id),
     empresa_matriz_id: number(data.empresa_matriz_id),
     ativo: data.ativo !== undefined ? boolean(data.ativo) : true,
+    must_change_password: data.must_change_password !== undefined ? boolean(data.must_change_password) : false,
   };
 };
 

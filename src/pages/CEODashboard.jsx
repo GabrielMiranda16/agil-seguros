@@ -52,6 +52,7 @@ const CEODashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [newAdminPassword, setNewAdminPassword] = useState('');
+  const [newAdminPerfil, setNewAdminPerfil] = useState('ADM');
   const [activeTab, setActiveTab] = useState("dashboard");
   const [closedAlerts, setClosedAlerts] = useState([]);
 
@@ -125,7 +126,7 @@ const CEODashboard = () => {
     setSolicitacaoCurrentPage(1);
   }, [solicitacaoStatusFilter, solicitacaoTypeFilter, solicitacaoEmpresaFilter]);
 
-  const admins = useMemo(() => users.filter(u => u.perfil === 'ADM'), [users]);
+  const admins = useMemo(() => users.filter(u => u.perfil === 'ADM' || u.perfil === 'CEO'), [users]);
 
   const metrics = useMemo(() => {
     const currentYear = new Date().getFullYear();
@@ -280,16 +281,18 @@ const CEODashboard = () => {
       const newAdmin = {
         email: newAdminEmail,
         password: newAdminPassword,
-        perfil: 'ADM',
+        perfil: newAdminPerfil,
         empresa_id: null,
         ativo: true,
+        must_change_password: true,
       };
 
       const createdUser = await authService.createUser(newAdmin);
       setUsers([...users, createdUser]);
-      toast({ title: 'Sucesso', description: 'Administrador adicionado.' });
+      toast({ title: 'Sucesso', description: `${newAdminPerfil === 'CEO' ? 'CEO' : 'Administrador'} adicionado.` });
       setNewAdminEmail('');
       setNewAdminPassword('');
+      setNewAdminPerfil('ADM');
       setIsModalOpen(false);
     } catch (error) {
        toast({ variant: 'destructive', title: 'Erro', description: 'Erro ao criar administrador.' });
@@ -409,7 +412,7 @@ const CEODashboard = () => {
               </div>
               <Button
                 onClick={() => navigate('/admin')}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white flex items-center gap-2 ml-auto"
+                className="bg-[#003580] hover:bg-[#002060] text-white flex items-center gap-2 ml-auto"
               >
                 <Shield className="h-4 w-4" />
                 Administração
@@ -446,7 +449,7 @@ const CEODashboard = () => {
                 })}
               </div>
 
-              <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 mb-6">
+              <Card className="bg-[#f0f7ff] border-[#c8e0f5] mb-6">
                 <CardHeader><CardTitle>Resumo Geral do Sistema</CardTitle></CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -536,14 +539,63 @@ const CEODashboard = () => {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
                   <div><CardTitle className="flex items-center gap-2"><Shield className="h-5 w-5" />Gestão de Administradores</CardTitle><CardDescription>Adicione e gerencie os administradores do sistema.</CardDescription></div>
-                  <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}><DialogTrigger asChild><Button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md hover:shadow-lg transition-all"><UserPlus className="mr-2 h-4 w-4" /> Adicionar ADM</Button></DialogTrigger><DialogContent className="sm:max-w-[425px]"><DialogHeader><DialogTitle>Adicionar Novo Administrador</DialogTitle></DialogHeader><form onSubmit={handleAddAdmin}><div className="grid gap-4 py-4"><div className="space-y-2"><Label htmlFor="email">Email</Label><Input id="email" type="email" value={newAdminEmail} onChange={e => setNewAdminEmail(e.target.value)} /></div><div className="space-y-2"><Label htmlFor="password">Senha</Label><Input id="password" type="password" value={newAdminPassword} onChange={e => setNewAdminPassword(e.target.value)} /></div></div><DialogFooter><Button type="submit" disabled={isSubmitting} className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar</Button></DialogFooter></form></DialogContent></Dialog>
+                  <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="bg-[#003580] hover:bg-[#002060] text-white shadow-md hover:shadow-lg transition-all">
+                        <UserPlus className="mr-2 h-4 w-4" /> Adicionar Usuário
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px]">
+                      <DialogHeader><DialogTitle>Adicionar Novo Usuário</DialogTitle></DialogHeader>
+                      <form onSubmit={handleAddAdmin}>
+                        <div className="grid gap-4 py-4">
+                          <div className="space-y-2">
+                            <Label>Perfil</Label>
+                            <Select value={newAdminPerfil} onValueChange={setNewAdminPerfil}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="ADM">ADM</SelectItem>
+                                <SelectItem value="CEO">CEO</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="adm-email">Email</Label>
+                            <Input id="adm-email" type="email" value={newAdminEmail} onChange={e => setNewAdminEmail(e.target.value)} />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="adm-password">Senha temporária</Label>
+                            <Input id="adm-password" type="password" value={newAdminPassword} onChange={e => setNewAdminPassword(e.target.value)} />
+                            <div className="mt-1 bg-gray-50 rounded-lg p-2.5 space-y-1">
+                              {[
+                                { ok: newAdminPassword.length >= 6,           txt: 'Mínimo 6 caracteres' },
+                                { ok: /[A-Z]/.test(newAdminPassword),         txt: '1 letra maiúscula' },
+                                { ok: /[a-z]/.test(newAdminPassword),         txt: '1 letra minúscula' },
+                                { ok: /[0-9]/.test(newAdminPassword),         txt: '1 número' },
+                                { ok: /[^a-zA-Z0-9]/.test(newAdminPassword),  txt: '1 caractere especial' },
+                              ].map(({ ok, txt }) => (
+                                <div key={txt} className={`flex items-center gap-1.5 text-xs ${ok ? 'text-green-600' : 'text-gray-400'}`}>
+                                  <span>{ok ? '✓' : '○'}</span> {txt}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button type="submit" disabled={isSubmitting} className="bg-[#003580] hover:bg-[#002060] text-white">
+                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar
+                          </Button>
+                        </DialogFooter>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     {isLoading ? Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-16" />) :
                       admins.length > 0 ? admins.map(admin => (
                         <div key={admin.id} className="flex items-center justify-between p-4 bg-white rounded-lg border shadow-sm hover:shadow-md transition-shadow">
-                          <div className="flex items-center gap-4"><div className="bg-gray-100 p-2 rounded-full"><Shield className="h-6 w-6 text-gray-600" /></div><div><p className="font-semibold text-gray-800">{admin.email}</p><Badge variant={admin.ativo ? 'default' : 'destructive'} className={admin.ativo ? 'bg-green-100 text-green-800 border-green-200 mt-1' : 'bg-red-100 text-red-800 border-red-200 mt-1'}>{admin.ativo ? 'Ativo' : 'Inativo'}</Badge></div></div>
+                          <div className="flex items-center gap-4"><div className="bg-gray-100 p-2 rounded-full"><Shield className="h-6 w-6 text-gray-600" /></div><div><p className="font-semibold text-gray-800">{admin.email}</p><div className="flex items-center gap-1 mt-1"><Badge variant="outline" className="text-xs">{admin.perfil}</Badge><Badge variant={admin.ativo ? 'default' : 'destructive'} className={admin.ativo ? 'bg-green-100 text-green-800 border-green-200' : 'bg-red-100 text-red-800 border-red-200'}>{admin.ativo ? 'Ativo' : 'Inativo'}</Badge></div></div></div>
                           <div className="flex items-center space-x-1"><Button variant="ghost" size="icon" onClick={() => openEditModal(admin)} title="Editar Administrador" className="hover:bg-blue-50 hover:text-blue-600"><Edit className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => toggleAdminStatus(admin.id)} title={admin.ativo ? "Desativar" : "Ativar"} className={admin.ativo ? "hover:bg-red-50 hover:text-red-600" : "hover:bg-green-50 hover:text-green-600"}>{admin.ativo ? <ToggleRight className="h-5 w-5" /> : <ToggleLeft className="h-5 w-5" />}</Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Você tem certeza?</AlertDialogTitle><AlertDialogDescription>Essa ação não pode ser desfeita. Isso excluirá permanentemente o administrador.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => deleteAdmin(admin.id)} className={buttonVariants({ variant: "destructive" })}>Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></div>
                         </div>
                       )) : (<div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed"><Shield className="h-10 w-10 text-gray-300 mx-auto mb-3" /><p className="text-gray-500 font-medium">Nenhum administrador cadastrado.</p><p className="text-sm text-gray-400">Adicione novos administradores para gerenciar o sistema.</p></div>)
@@ -568,7 +620,7 @@ const CEODashboard = () => {
           </TabsContent>
         </Tabs>
 
-        <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}><DialogContent className="sm:max-w-[425px]"><DialogHeader><DialogTitle>Editar Administrador</DialogTitle></DialogHeader><form onSubmit={handleEditAdmin}><div className="grid gap-4 py-4"><div className="space-y-2"><Label htmlFor="edit-email">Email</Label><Input id="edit-email" type="email" value={editAdminEmail} onChange={e => setEditAdminEmail(e.target.value)} /></div><div className="space-y-2"><Label htmlFor="edit-password">Senha</Label><Input id="edit-password" type="password" value={editAdminPassword} onChange={e => setEditAdminPassword(e.target.value)} /></div></div><DialogFooter><Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancelar</Button><Button type="submit" disabled={isSubmitting} className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar Alterações</Button></DialogFooter></form></DialogContent></Dialog>
+        <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}><DialogContent className="sm:max-w-[425px]"><DialogHeader><DialogTitle>Editar Administrador</DialogTitle></DialogHeader><form onSubmit={handleEditAdmin}><div className="grid gap-4 py-4"><div className="space-y-2"><Label htmlFor="edit-email">Email</Label><Input id="edit-email" type="email" value={editAdminEmail} onChange={e => setEditAdminEmail(e.target.value)} /></div><div className="space-y-2"><Label htmlFor="edit-password">Senha</Label><Input id="edit-password" type="password" value={editAdminPassword} onChange={e => setEditAdminPassword(e.target.value)} /></div></div><DialogFooter><Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancelar</Button><Button type="submit" disabled={isSubmitting} className="bg-[#003580] hover:bg-[#002060] text-white">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar Alterações</Button></DialogFooter></form></DialogContent></Dialog>
         
         <Dialog open={!isLoading && empresas.length === 0 && isWelcomeModalOpen} onOpenChange={(open) => setIsWelcomeModalOpen(open)}>
           <DialogContent className="sm:max-w-[425px]">

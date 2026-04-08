@@ -89,19 +89,17 @@ export const apolicesService = {
   },
 
   async createApolice(apoliceData) {
-    try {
-      const { data, error } = await supabase
-        .from('apolices')
-        .insert([apoliceData])
-        .select()
-        .single();
+    const { data, error } = await supabase
+      .from('apolices')
+      .insert([apoliceData])
+      .select()
+      .single();
 
-      if (error) throw error;
-      return data;
-    } catch (error) {
+    if (error) {
       console.error('Erro ao criar apólice:', error);
-      throw new Error('Não foi possível criar a apólice.');
+      throw new Error(error.message || 'Não foi possível criar a apólice.');
     }
+    return data;
   },
 
   async updateApolice(id, updateData) {

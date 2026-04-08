@@ -43,9 +43,11 @@ const LoginPage = () => {
             className: "bg-green-600 border-green-700 text-white"
         });
 
-        if (user.perfil === 'CEO') navigate('/ceo');
+        if (safeUser.must_change_password) {
+          navigate('/force-change-password');
+        } else if (user.perfil === 'CEO') navigate('/ceo');
         else if (user.perfil === 'ADM') navigate('/admin');
-        else if (user.perfil === 'CLIENTE') navigate('/select-company');
+        else if (user.perfil === 'CLIENTE') navigate('/select-segmento');
     } catch (error) {
         console.error("Login error caught in component:", error);
         toast({
@@ -66,19 +68,23 @@ const LoginPage = () => {
         <title>Login - Ágil Seguros</title>
         <meta name="description" content="Acesse sua conta no sistema Ágil Seguros." />
       </Helmet>
-      <div className="min-h-screen flex items-center justify-center bg-soft-gradient p-4">
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-soft-gradient">
         <motion.div
           initial={{ opacity: 0, y: -20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
+          className="flex flex-col items-center w-full max-w-sm"
         >
-          <Card className="w-full max-w-sm bg-white/80 border-gray-200 backdrop-blur-md shadow-lg">
-            <CardHeader className="text-center">
-              <div className="flex justify-center mb-4">
-                  <img src={logoUrl} alt="Logo Ágil Seguros" className="h-16 w-auto" />
-              </div>
-              <CardTitle className="text-2xl tracking-tight text-gray-900">Ágil Seguros</CardTitle>
-              <CardDescription className="text-gray-600">Entre para gerenciar seus dados</CardDescription>
+          {/* Logo fora do card */}
+          <img
+            src="https://storage.googleapis.com/hostinger-horizons-assets-prod/bcb47250-76a3-434c-9312-56a9dba14a6f/247eb5219c397bb2ed2bcac42f39a442.png"
+            alt="Ágil Seguros"
+            className="h-24 w-auto object-contain mb-6"
+          />
+
+          <Card className="w-full bg-white/90 border-0 backdrop-blur-md shadow-2xl">
+            <CardHeader className="text-center pb-2">
+              <CardDescription className="text-gray-500">Entre para gerenciar seus dados</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -91,7 +97,7 @@ const LoginPage = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="bg-gray-100 border-gray-300 focus:border-blue-500 text-gray-900 placeholder:text-gray-500"
+                    className="border-[#c8e0f5] focus:border-[#003580] bg-[#f0f7ff]"
                   />
                 </div>
                 <div className="space-y-2">
@@ -103,10 +109,10 @@ const LoginPage = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="bg-gray-100 border-gray-300 focus:border-blue-500 text-gray-900 placeholder:text-gray-500"
+                    className="border-[#c8e0f5] focus:border-[#003580] bg-[#f0f7ff]"
                   />
                 </div>
-                <Button type="submit" className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white" disabled={isLoggingIn}>
+                <Button type="submit" className="w-full rounded-full font-bold text-white" style={{ background: '#003580' }} disabled={isLoggingIn}>
                   {isLoggingIn ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />

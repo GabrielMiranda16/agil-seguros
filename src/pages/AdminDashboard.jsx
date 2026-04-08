@@ -12,9 +12,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Skeleton } from '@/components/ui/skeleton';
-import { Building, Plus, Trash2, ArrowRight, Search, Loader2, GitBranchPlus, Edit, Users, FileText, AlertTriangle, X } from 'lucide-react';
+import { Building, Plus, Trash2, ArrowRight, Search, Loader2, GitBranchPlus, Edit, Users, FileText, AlertTriangle, X, User, Building2 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { applyCnpjMask } from '@/lib/masks';
+import { applyCnpjMask, applyCpfMask, applyCepMask } from '@/lib/masks';
+import { generateTempPassword, sendWelcomeEmail } from '@/services/emailService';
 
 import { empresasService } from '@/services/empresasService';
 import { beneficiariosService } from '@/services/beneficiariosService';
@@ -43,7 +44,9 @@ const AdminDashboard = () => {
   const [isEditEmpresaModalOpen, setIsEditEmpresaModalOpen] = useState(false);
   const [isAddFilialModalOpen, setIsAddFilialModalOpen] = useState(false);
 
-  const [newEmpresa, setNewEmpresa] = useState({ razao_social: '', nome_fantasia: '', cnpj: '', endereco_completo: '', email_cliente: '', senha_cliente: '' });
+  const [tipoPessoa, setTipoPessoa] = useState('PJ'); // 'PJ' | 'PF'
+  const [newEmpresa, setNewEmpresa] = useState({ razao_social: '', nome_fantasia: '', cnpj: '', endereco_completo: '', email_cliente: '', data_nascimento: '', cep: '', rua: '', bairro: '', cidade: '', estado: '', numero: '', complemento: '' });
+  const [isCepLoading, setIsCepLoading] = useState(false);
   const [editingEmpresa, setEditingEmpresa] = useState(null);
   const [filialFormData, setFilialFormData] = useState({ razao_social: '', nome_fantasia: '', cnpj: '', endereco_completo: '' });
   const [editingFilial, setEditingFilial] = useState(null);
@@ -154,30 +157,120 @@ const AdminDashboard = () => {
     return combined;
   }, [searchTerm, matrizes, filiais, beneficiarios, empresas]);
 
-  const handleInputChange = (e, setter) => {
+  const handleInputChange = (e, setter, isCpfField = false) => {
     const { id, value } = e.target;
-    setter(prev => ({ ...prev, [id]: id === 'cnpj' ? applyCnpjMask(value) : value }));
+    let formatted = value;
+    if (id === 'cnpj') formatted = isCpfField ? applyCpfMask(value) : applyCnpjMask(value);
+    if (id === 'cep') formatted = applyCepMask(value);
+    setter(prev => ({ ...prev, [id]: formatted }));
+  };
+
+  const validarCPF = (cpf) => {
+    const nums = cpf.replace(/\D/g, '');
+    if (nums.length !== 11 || /^(\d)\1+$/.test(nums)) return false;
+    let soma = 0;
+    for (let i = 0; i < 9; i++) soma += parseInt(nums[i]) * (10 - i);
+    let dig1 = (soma * 10) % 11; if (dig1 >= 10) dig1 = 0;
+    if (dig1 !== parseInt(nums[9])) return false;
+    soma = 0;
+    for (let i = 0; i < 10; i++) soma += parseInt(nums[i]) * (11 - i);
+    let dig2 = (soma * 10) % 11; if (dig2 >= 10) dig2 = 0;
+    return dig2 === parseInt(nums[10]);
+  };
+
+  const buscarCep = async (cep) => {
+    const nums = cep.replace(/\D/g, '');
+    if (nums.length !== 8) return;
+    setIsCepLoading(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${nums}/json/`);
+      const data = await res.json();
+      if (data.erro) return toast({ variant: 'destructive', title: 'CEP não encontrado' });
+      setNewEmpresa(prev => ({
+        ...prev,
+        rua: data.logradouro || '',
+        bairro: data.bairro || '',
+        cidade: data.localidade || '',
+        estado: data.uf || '',
+      }));
+    } catch {
+      toast({ variant: 'destructive', title: 'Erro ao buscar CEP' });
+    } finally {
+      setIsCepLoading(false);
+    }
   };
 
   const validateAndSubmitMatriz = async (e) => {
     e.preventDefault();
     if (!canManage) return toast({ variant: 'destructive', title: 'Ação não permitida' });
-    const { razao_social, cnpj, email_cliente, senha_cliente } = newEmpresa;
-    if (!razao_social || !cnpj || !email_cliente || !senha_cliente)
-      return toast({ variant: 'destructive', title: 'Erro', description: 'Todos os campos são obrigatórios.' });
-    if (users.some(u => u.email === email_cliente) || empresas.some(emp => emp.cnpj === cnpj))
-      return toast({ variant: 'destructive', title: 'Erro', description: 'E-mail ou CNPJ já cadastrado.' });
+    const { razao_social, cnpj, email_cliente, data_nascimento, cep, rua, numero, bairro, cidade, estado } = newEmpresa;
+    if (!razao_social || !cnpj || !email_cliente)
+      return toast({ variant: 'destructive', title: 'Erro', description: 'Todos os campos obrigatórios devem ser preenchidos.' });
+    if (tipoPessoa === 'PF') {
+      if (!validarCPF(cnpj))
+        return toast({ variant: 'destructive', title: 'CPF inválido', description: 'Verifique o CPF informado.' });
+      if (!data_nascimento)
+        return toast({ variant: 'destructive', title: 'Erro', description: 'Data de nascimento obrigatória.' });
+    }
+    if (users.some(u => u.email === email_cliente))
+      return toast({ variant: 'destructive', title: 'Erro', description: 'E-mail já cadastrado.' });
+    if (empresas.some(emp => emp.cnpj.replace(/\D/g, '') === cnpj.replace(/\D/g, '')))
+      return toast({ variant: 'destructive', title: 'Erro', description: tipoPessoa === 'PF' ? 'CPF já cadastrado.' : 'CNPJ já cadastrado.' });
+
+    // Monta endereço completo para PF
+    let endereco_completo = newEmpresa.endereco_completo;
+    if (tipoPessoa === 'PF' && rua) {
+      endereco_completo = [
+        rua,
+        numero && `nº ${numero}`,
+        newEmpresa.complemento,
+        bairro,
+        cidade && estado ? `${cidade}/${estado}` : cidade || estado,
+        cep && `CEP ${cep}`,
+      ].filter(Boolean).join(', ');
+    }
+
     setIsSubmitting(true);
     try {
-      const { email_cliente: _e, senha_cliente: _s, ...empresaPayload } = { tipo: 'MATRIZ', empresa_matriz_id: null, ...newEmpresa, data_cadastro: new Date().toISOString() };
+      const senhaTemporaria = generateTempPassword();
+      const { email_cliente: _e, data_nascimento: _dn, cep: _cep, rua: _r, bairro: _b, cidade: _c, estado: _est, numero: _n, complemento: _comp, ...empresaPayload } = {
+        tipo: 'MATRIZ',
+        empresa_matriz_id: null,
+        ...newEmpresa,
+        endereco_completo,
+        data_cadastro: new Date().toISOString(),
+      };
+      if (tipoPessoa === 'PF' && data_nascimento) empresaPayload.data_nascimento = data_nascimento;
       empresaPayload.email_cliente = email_cliente;
       const createdEmpresa = await empresasService.createEmpresa(empresaPayload);
-      const createdUser = await authService.createUser({ email: email_cliente, password: senha_cliente, perfil: 'CLIENTE', empresa_matriz_id: createdEmpresa.id, ativo: true });
+      const createdUser = await authService.createUser({
+        email: email_cliente,
+        password: senhaTemporaria,
+        perfil: 'CLIENTE',
+        empresa_matriz_id: createdEmpresa.id,
+        ativo: true,
+        must_change_password: true,
+      });
       setEmpresas([...empresas, createdEmpresa]);
       setUsers([...users, createdUser]);
-      toast({ title: 'Sucesso', description: 'Cliente criado com sucesso.' });
+
+      // Envia email com senha temporária
+      const emailOk = await sendWelcomeEmail({
+        nomeCliente: razao_social,
+        emailCliente: email_cliente,
+        senhaTemporaria,
+      });
+
+      toast({
+        title: 'Cliente criado com sucesso!',
+        description: emailOk
+          ? `Senha temporária enviada para ${email_cliente}.`
+          : `Senha temporária: ${senhaTemporaria} (e-mail não pôde ser enviado — verifique a configuração do EmailJS).`,
+        duration: emailOk ? 4000 : 10000,
+      });
       setIsNewClienteModalOpen(false);
-      setNewEmpresa({ razao_social: '', nome_fantasia: '', cnpj: '', endereco_completo: '', email_cliente: '', senha_cliente: '' });
+      setNewEmpresa({ razao_social: '', nome_fantasia: '', cnpj: '', endereco_completo: '', email_cliente: '' });
+      setTipoPessoa('PJ');
     } catch (error) {
       toast({ variant: 'destructive', title: 'Erro', description: 'Erro ao criar cliente.' });
     } finally {
@@ -286,7 +379,7 @@ const AdminDashboard = () => {
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold tracking-tight text-gray-900">Clientes</h1>
             {canManage && (
-              <Button onClick={() => setIsNewClienteModalOpen(true)} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
+              <Button onClick={() => setIsNewClienteModalOpen(true)} className="bg-[#003580] hover:bg-[#002060] text-white">
                 <Plus className="mr-2 h-4 w-4" /> Novo Cliente
               </Button>
             )}
@@ -310,7 +403,7 @@ const AdminDashboard = () => {
 
           {/* Metric Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Card className="bg-gradient-to-br from-blue-500 to-blue-700 text-white border-0 shadow-lg">
+            <Card className="bg-[#003580] text-white border-0 shadow-lg">
               <CardContent className="pt-6 pb-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -385,13 +478,16 @@ const AdminDashboard = () => {
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="bg-gradient-to-br from-blue-100 to-indigo-100 p-2.5 rounded-xl shrink-0">
+                        <div className="bg-[#dbeeff] p-2.5 rounded-xl shrink-0">
                           <Building className="h-5 w-5 text-blue-600" />
                         </div>
                         <div className="min-w-0">
                           <p className="font-bold text-gray-900 truncate">{matriz.nome_fantasia || matriz.razao_social}</p>
                           <p className="text-xs text-gray-500 mt-0.5">
-                            CNPJ: {applyCnpjMask(matriz.cnpj)}
+                            {matriz.cnpj && matriz.cnpj.replace(/\D/g, '').length === 11
+                              ? `CPF: ${applyCpfMask(matriz.cnpj)}`
+                              : `CNPJ: ${applyCnpjMask(matriz.cnpj)}`
+                            }
                             {filiaisCount > 0 && <span className="ml-2 text-gray-400">· {filiaisCount} filial(is)</span>}
                           </p>
                         </div>
@@ -409,16 +505,18 @@ const AdminDashboard = () => {
                         )}
                         <Button
                           size="sm"
-                          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                          className="bg-[#003580] hover:bg-[#002060] text-white"
                           onClick={() => navigate(`/admin/cliente/${matriz.id}`)}
                         >
                           Acessar <ArrowRight className="ml-1 h-4 w-4" />
                         </Button>
                         {canManage && (
                           <>
-                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openAddFilialModal(matriz)} title="Adicionar filial">
-                              <GitBranchPlus className="h-4 w-4" />
-                            </Button>
+                            {!(matriz.cnpj && matriz.cnpj.replace(/\D/g, '').length === 11) && (
+                              <Button variant="outline" size="sm" className="h-8 px-2 text-xs" onClick={() => openAddFilialModal(matriz)}>
+                                Filial
+                              </Button>
+                            )}
                             <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEditModal(matriz)} title="Editar acesso">
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -453,26 +551,116 @@ const AdminDashboard = () => {
       </DashboardLayout>
 
       {/* Modal Novo Cliente */}
-      <Dialog open={isNewClienteModalOpen} onOpenChange={setIsNewClienteModalOpen}>
-        <DialogContent className="sm:max-w-2xl">
+      <Dialog open={isNewClienteModalOpen} onOpenChange={(open) => {
+        setIsNewClienteModalOpen(open);
+        if (!open) { setTipoPessoa('PJ'); setNewEmpresa({ razao_social: '', nome_fantasia: '', cnpj: '', endereco_completo: '', email_cliente: '', data_nascimento: '', cep: '', rua: '', bairro: '', cidade: '', estado: '', numero: '', complemento: '' }); }
+      }}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Novo Cliente</DialogTitle></DialogHeader>
           <form onSubmit={validateAndSubmitMatriz}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-              <div><Label htmlFor="razao_social">Razão Social *</Label><Input id="razao_social" value={newEmpresa.razao_social} onChange={e => handleInputChange(e, setNewEmpresa)} /></div>
-              <div><Label htmlFor="nome_fantasia">Nome Fantasia</Label><Input id="nome_fantasia" value={newEmpresa.nome_fantasia} onChange={e => handleInputChange(e, setNewEmpresa)} /></div>
-              <div><Label htmlFor="cnpj">CNPJ *</Label><Input id="cnpj" value={newEmpresa.cnpj} onChange={e => handleInputChange(e, setNewEmpresa)} /></div>
-              <div><Label htmlFor="endereco_completo">Endereço</Label><Input id="endereco_completo" value={newEmpresa.endereco_completo} onChange={e => handleInputChange(e, setNewEmpresa)} /></div>
-              <div className="md:col-span-2 border-t pt-4 mt-1">
-                <p className="text-sm font-medium text-gray-600 mb-3">Credenciais de acesso do cliente</p>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div><Label htmlFor="email_cliente">E-mail *</Label><Input id="email_cliente" type="email" value={newEmpresa.email_cliente} onChange={e => handleInputChange(e, setNewEmpresa)} /></div>
-                  <div><Label htmlFor="senha_cliente">Senha *</Label><Input id="senha_cliente" type="password" value={newEmpresa.senha_cliente} onChange={e => handleInputChange(e, setNewEmpresa)} /></div>
+            <div className="py-4 space-y-4">
+
+              {/* Toggle PF / PJ */}
+              <div className="flex gap-2 p-1 bg-gray-100 rounded-xl w-fit">
+                <button
+                  type="button"
+                  onClick={() => { setTipoPessoa('PJ'); setNewEmpresa({ razao_social: '', nome_fantasia: '', cnpj: '', endereco_completo: '', email_cliente: '', data_nascimento: '', cep: '', rua: '', bairro: '', cidade: '', estado: '', numero: '', complemento: '' }); }}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tipoPessoa === 'PJ' ? 'bg-white shadow text-blue-700' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  <Building2 className="h-4 w-4" /> Pessoa Jurídica
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setTipoPessoa('PF'); setNewEmpresa({ razao_social: '', nome_fantasia: '', cnpj: '', endereco_completo: '', email_cliente: '', data_nascimento: '', cep: '', rua: '', bairro: '', cidade: '', estado: '', numero: '', complemento: '' }); }}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tipoPessoa === 'PF' ? 'bg-white shadow text-blue-700' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  <User className="h-4 w-4" /> Pessoa Física
+                </button>
+              </div>
+
+              {tipoPessoa === 'PJ' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div><Label htmlFor="razao_social">Razão Social *</Label><Input id="razao_social" value={newEmpresa.razao_social} onChange={e => handleInputChange(e, setNewEmpresa)} /></div>
+                  <div><Label htmlFor="nome_fantasia">Nome Fantasia</Label><Input id="nome_fantasia" value={newEmpresa.nome_fantasia} onChange={e => handleInputChange(e, setNewEmpresa)} /></div>
+                  <div><Label htmlFor="cnpj">CNPJ *</Label><Input id="cnpj" value={newEmpresa.cnpj} placeholder="00.000.000/0000-00" onChange={e => handleInputChange(e, setNewEmpresa, false)} /></div>
+                  <div><Label htmlFor="endereco_completo">Endereço</Label><Input id="endereco_completo" value={newEmpresa.endereco_completo} onChange={e => handleInputChange(e, setNewEmpresa)} /></div>
                 </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <Label htmlFor="razao_social">Nome Completo *</Label>
+                    <Input id="razao_social" value={newEmpresa.razao_social} onChange={e => handleInputChange(e, setNewEmpresa)} />
+                  </div>
+                  <div>
+                    <Label htmlFor="cnpj">CPF *</Label>
+                    <Input id="cnpj" value={newEmpresa.cnpj} placeholder="000.000.000-00" onChange={e => handleInputChange(e, setNewEmpresa, true)} maxLength={14} />
+                  </div>
+                  <div>
+                    <Label htmlFor="data_nascimento">Data de Nascimento *</Label>
+                    <Input id="data_nascimento" type="date" value={newEmpresa.data_nascimento} onChange={e => handleInputChange(e, setNewEmpresa)} />
+                  </div>
+                  <div>
+                    <Label htmlFor="cep">CEP</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="cep"
+                        value={newEmpresa.cep}
+                        placeholder="00000-000"
+                        maxLength={9}
+                        onChange={e => handleInputChange(e, setNewEmpresa)}
+                        onBlur={() => buscarCep(newEmpresa.cep)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => buscarCep(newEmpresa.cep)}
+                        disabled={isCepLoading}
+                        className="px-3 py-2 rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-gray-600 flex items-center gap-1 text-sm"
+                      >
+                        {isCepLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="numero">Número</Label>
+                    <Input id="numero" value={newEmpresa.numero} placeholder="123" onChange={e => handleInputChange(e, setNewEmpresa)} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label htmlFor="rua">Rua</Label>
+                    <Input id="rua" value={newEmpresa.rua} readOnly className="bg-gray-50 text-gray-600" />
+                  </div>
+                  <div>
+                    <Label htmlFor="complemento">Complemento</Label>
+                    <Input id="complemento" value={newEmpresa.complemento} placeholder="Apto, bloco..." onChange={e => handleInputChange(e, setNewEmpresa)} />
+                  </div>
+                  <div>
+                    <Label htmlFor="bairro">Bairro</Label>
+                    <Input id="bairro" value={newEmpresa.bairro} readOnly className="bg-gray-50 text-gray-600" />
+                  </div>
+                  <div>
+                    <Label htmlFor="cidade">Cidade</Label>
+                    <Input id="cidade" value={newEmpresa.cidade} readOnly className="bg-gray-50 text-gray-600" />
+                  </div>
+                  <div>
+                    <Label htmlFor="estado">Estado</Label>
+                    <Input id="estado" value={newEmpresa.estado} readOnly className="bg-gray-50 text-gray-600" />
+                  </div>
+                </div>
+              )}
+
+              <div className="border-t pt-4">
+                <p className="text-sm font-medium text-gray-600 mb-3">Acesso do cliente</p>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <Label htmlFor="email_cliente">E-mail *</Label>
+                    <Input id="email_cliente" type="email" value={newEmpresa.email_cliente} onChange={e => handleInputChange(e, setNewEmpresa)} />
+                  </div>
+                </div>
+                <p className="text-xs text-gray-400 mt-2">Uma senha temporária será gerada automaticamente e enviada para o e-mail do cliente.</p>
               </div>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsNewClienteModalOpen(false)}>Cancelar</Button>
-              <Button type="submit" disabled={isSubmitting} className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+              <Button type="submit" disabled={isSubmitting} className="bg-[#003580] hover:bg-[#002060] text-white">
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Criar Cliente
               </Button>
@@ -496,7 +684,7 @@ const AdminDashboard = () => {
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsEditEmpresaModalOpen(false)}>Cancelar</Button>
-                <Button type="submit" disabled={isSubmitting} className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+                <Button type="submit" disabled={isSubmitting} className="bg-[#003580] hover:bg-[#002060] text-white">
                   {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Salvar Alterações
                 </Button>
@@ -521,7 +709,7 @@ const AdminDashboard = () => {
               <div><Label>Endereço</Label><Input id="endereco_completo" value={filialFormData.endereco_completo} onChange={e => handleInputChange(e, setFilialFormData)} /></div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsAddFilialModalOpen(false)}>Cancelar</Button>
-                <Button type="submit" disabled={isSubmitting} className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+                <Button type="submit" disabled={isSubmitting} className="bg-[#003580] hover:bg-[#002060] text-white">
                   {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   <GitBranchPlus className="mr-2 h-4 w-4" /> Adicionar Filial
                 </Button>
