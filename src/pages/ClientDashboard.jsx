@@ -873,7 +873,7 @@ const ClientDashboard = () => {
   }
 
   if (!empresa && !isLoading && empresas.length > 0) { 
-      return <DashboardLayout><div className="text-center"><h1 className="text-2xl font-bold">Empresa não encontrada.</h1></div></DashboardLayout>; 
+      return <DashboardLayout><div className="text-center"><h1 className="text-2xl font-bold text-white">Empresa não encontrada.</h1></div></DashboardLayout>;
   }
 
   return (

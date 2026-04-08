@@ -240,7 +240,7 @@ const AdminSegmentoPage = () => {
               {matriz.nome_fantasia || matriz.razao_social}
             </button>
             <ChevronRight className="h-4 w-4 text-gray-300" />
-            <span className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
+            <span className="text-sm font-semibold text-white flex items-center gap-1.5">
               <Icon className="h-4 w-4" /> {label}
             </span>
           </div>
@@ -251,7 +251,7 @@ const AdminSegmentoPage = () => {
               <button onClick={() => navigate(`/admin/cliente/${matrizId}`)} className="flex items-center gap-1 text-gray-500 hover:text-gray-800 transition-colors mr-1">
                 <ArrowLeft className="h-4 w-4" />
               </button>
-              <h1 className="text-xl font-bold text-gray-900">{label}</h1>
+              <h1 className="text-xl font-bold text-white">{label}</h1>
             </div>
           </div>
 

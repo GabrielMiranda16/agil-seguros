@@ -372,8 +372,8 @@ const CoparticipacaoPage = () => {
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Coparticipação</h1>
-            <p className="text-muted-foreground">Gerencie os valores de coparticipação mensal por empresa.</p>
+            <h1 className="text-3xl font-bold tracking-tight text-white">Coparticipação</h1>
+            <p className="text-white/70">Gerencie os valores de coparticipação mensal por empresa.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => navigate(-1)}>

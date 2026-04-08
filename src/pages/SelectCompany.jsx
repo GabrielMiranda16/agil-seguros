@@ -125,8 +125,8 @@ const SelectCompanyPage = () => {
         if (userCompanies.length === 0) {
             return (
                 <div className="min-h-screen flex flex-col items-center justify-center bg-gray-900 p-4 text-white">
-                    <h2 className="text-xl font-bold">Nenhuma empresa vinculada.</h2>
-                    <p className="text-gray-400">Entre em contato com o administrador.</p>
+                    <h2 className="text-xl font-bold text-white">Nenhuma empresa vinculada.</h2>
+                    <p className="text-gray-300">Entre em contato com o administrador.</p>
                     <Button onClick={handleLogout} className="mt-4"><LogOut className="mr-2 h-4 w-4" /> Sair</Button>
                 </div>
             );
@@ -149,9 +149,9 @@ const SelectCompanyPage = () => {
             <div className="min-h-screen flex flex-col items-start justify-start bg-soft-gradient p-4 sm:p-8 text-gray-800">
                 <div className="w-full flex justify-between items-center mb-8">
                     <div>
-                        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Selecione o CNPJ</h1>
-                        {user.perfil === 'CLIENTE' && <p className="text-lg text-gray-600">{matriz?.nome_fantasia || matriz?.razao_social}</p>}
-                        {(user.perfil === 'ADM' || user.perfil === 'CEO') && <p className="text-lg text-gray-600">Selecione uma empresa para gerenciar</p>}
+                        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">Selecione o CNPJ</h1>
+                        {user.perfil === 'CLIENTE' && <p className="text-lg text-white/70">{matriz?.nome_fantasia || matriz?.razao_social}</p>}
+                        {(user.perfil === 'ADM' || user.perfil === 'CEO') && <p className="text-lg text-white/70">Selecione uma empresa para gerenciar</p>}
                     </div>
                     <Button variant="ghost" onClick={handleLogout} className="text-gray-600 hover:text-gray-900 hover:bg-gray-200">
                         <LogOut className="mr-2 h-4 w-4"/> Sair

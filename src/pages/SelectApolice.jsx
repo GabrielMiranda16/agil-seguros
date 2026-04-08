@@ -83,8 +83,8 @@ const SelectApolice = () => {
           {apolices.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24 text-center">
               <FileText className="h-12 w-12 text-gray-300 mb-4" />
-              <h2 className="text-xl font-semibold text-gray-600">Nenhuma apólice encontrada</h2>
-              <p className="text-gray-400 mt-2">Entre em contato com o administrador.</p>
+              <h2 className="text-xl font-semibold text-white">Nenhuma apólice encontrada</h2>
+              <p className="text-white/60 mt-2">Entre em contato com o administrador.</p>
             </div>
           ) : (
             <motion.div
