@@ -408,7 +408,7 @@ const CEODashboard = () => {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <h1 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard do CEO</h1>
+                <h1 className="text-3xl font-bold tracking-tight text-white">Dashboard do CEO</h1>
               </div>
               <Button
                 onClick={() => navigate('/admin')}

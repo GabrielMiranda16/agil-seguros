@@ -12,7 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Building, GitBranchPlus, ChevronRight, AlertTriangle, Heart, Car, Plane, Home, PawPrint, Building2, Package, Monitor, Loader2, Users, FileText, Trash2, Edit } from 'lucide-react';
+import { ArrowLeft, Building, ChevronRight, AlertTriangle, Heart, Car, Plane, Home, PawPrint, Building2, Package, Monitor, Loader2, Users, FileText, Trash2, Edit } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { applyCnpjMask, applyCpfMask } from '@/lib/masks';
 
@@ -183,7 +183,7 @@ const AdminClientePage = () => {
                     <Building className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h1 className="text-xl font-bold">{matriz.nome_fantasia || matriz.razao_social}</h1>
+                    <h1 className="text-xl font-bold text-white">{matriz.nome_fantasia || matriz.razao_social}</h1>
                     {matriz.nome_fantasia && <p className="text-blue-100 text-sm">{matriz.razao_social}</p>}
                   </div>
                 </div>
@@ -208,7 +208,6 @@ const AdminClientePage = () => {
               {!(matriz.cnpj && matriz.cnpj.replace(/\D/g, '').length === 11) && <div className="mt-4 border-t pt-4">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
-                    <GitBranchPlus className="h-4 w-4 text-gray-500" />
                     Filiais ({filiais.length})
                   </p>
                   {canManage && (
@@ -258,7 +257,7 @@ const AdminClientePage = () => {
 
           {/* Segments Grid */}
           <div>
-            <h2 className="text-base font-semibold text-gray-700 mb-3">Segmentos</h2>
+            <h2 className="text-base font-semibold text-white mb-3">Segmentos</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {SEGMENTOS_CONFIG.map(({ key, label, slug, Icon }) => {
                 const count = getCountForSegmento(key);

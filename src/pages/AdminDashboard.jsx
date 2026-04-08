@@ -281,21 +281,24 @@ const AdminDashboard = () => {
   const validateAndSubmitEditMatriz = async (e) => {
     e.preventDefault();
     if (!canManage || !editingEmpresa) return;
-    const { email_cliente, senha_cliente } = editingEmpresa;
+    const { email_cliente, senha_cliente, cnpj } = editingEmpresa;
     if (!email_cliente) return toast({ variant: 'destructive', title: 'Erro', description: 'E-mail obrigatório.' });
+    if (!cnpj) return toast({ variant: 'destructive', title: 'Erro', description: 'CPF/CNPJ obrigatório.' });
     const clientUser = users.find(u => u.empresa_matriz_id === editingEmpresa.id);
     if (!clientUser) return toast({ variant: 'destructive', title: 'Erro', description: 'Usuário não encontrado.' });
     if (users.some(u => u.email === email_cliente && u.id !== clientUser.id))
       return toast({ variant: 'destructive', title: 'Erro', description: 'E-mail já em uso.' });
+    if (empresas.some(emp => emp.cnpj?.replace(/\D/g, '') === cnpj.replace(/\D/g, '') && emp.id !== editingEmpresa.id))
+      return toast({ variant: 'destructive', title: 'Erro', description: 'CPF/CNPJ já cadastrado em outro cliente.' });
     setIsSubmitting(true);
     try {
       const updatePayload = { email: email_cliente };
       if (senha_cliente) updatePayload.password = senha_cliente;
       await authService.updateUser(clientUser.id, updatePayload);
-      await empresasService.updateEmpresa(editingEmpresa.id, { email_cliente });
+      await empresasService.updateEmpresa(editingEmpresa.id, { email_cliente, cnpj });
       setUsers(prev => prev.map(u => u.id === clientUser.id ? { ...u, ...updatePayload } : u));
-      setEmpresas(prev => prev.map(e => e.id === editingEmpresa.id ? { ...e, email_cliente } : e));
-      toast({ title: 'Sucesso', description: 'Acesso do cliente atualizado.' });
+      setEmpresas(prev => prev.map(e => e.id === editingEmpresa.id ? { ...e, email_cliente, cnpj } : e));
+      toast({ title: 'Sucesso', description: 'Dados do cliente atualizados.' });
       setIsEditEmpresaModalOpen(false);
       setEditingEmpresa(null);
     } catch (error) {
@@ -377,7 +380,7 @@ const AdminDashboard = () => {
 
           {/* Header */}
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold tracking-tight text-gray-900">Clientes</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-white">Clientes</h1>
             {canManage && (
               <Button onClick={() => setIsNewClienteModalOpen(true)} className="bg-[#003580] hover:bg-[#002060] text-white">
                 <Plus className="mr-2 h-4 w-4" /> Novo Cliente
@@ -679,6 +682,10 @@ const AdminDashboard = () => {
             </DialogHeader>
             <form onSubmit={validateAndSubmitEditMatriz}>
               <div className="space-y-4 py-4">
+                <div>
+                  <Label htmlFor="cnpj">{editingEmpresa.cnpj?.replace(/\D/g, '').length === 11 ? 'CPF' : 'CNPJ'} *</Label>
+                  <Input id="cnpj" value={editingEmpresa.cnpj || ''} onChange={e => handleInputChange(e, setEditingEmpresa)} />
+                </div>
                 <div><Label htmlFor="email_cliente">E-mail *</Label><Input id="email_cliente" type="email" value={editingEmpresa.email_cliente} onChange={e => handleInputChange(e, setEditingEmpresa)} /></div>
                 <div><Label htmlFor="senha_cliente">Nova Senha (opcional)</Label><Input id="senha_cliente" type="password" placeholder="Deixe em branco para manter a atual" value={editingEmpresa.senha_cliente} onChange={e => handleInputChange(e, setEditingEmpresa)} /></div>
               </div>

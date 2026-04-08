@@ -28,7 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Users, UserCheck, UserX, UserMinus, Plus, Edit, Trash2, Search, Loader2, Info, Heart, Smile, Hotel as Hospital, ExternalLink, CheckCircle2, Calendar, Timer, RotateCcw, AlertCircle, X, User } from 'lucide-react';
+import { Users, UserCheck, UserX, UserMinus, Plus, Edit, Trash2, Search, Loader2, Info, Heart, Smile, Hotel as Hospital, ExternalLink, CheckCircle2, Calendar, Timer, RotateCcw, AlertCircle, X, User, ClipboardList, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { applyCpfMask, applyPhoneMask, applyCepMask } from '@/lib/masks';
 import { calculateAge, formatCurrency, formatDate } from '@/lib/utils';
@@ -290,7 +290,7 @@ const ModalFormContent = React.memo(({ formData, setFormData, age, titulares, is
       {beneficiario && isCliente && (
       <div className="mt-6 pt-6 border-t">
         <div className="flex items-center justify-between mb-4">
-            <h4 className="font-semibold">Solicitar Inclusão em Planos</h4>
+            <h4 className="font-semibold">Solicitar Inclusão e Exclusão</h4>
             <Button type="button" onClick={openSolicitacaoDialog} className="bg-[#003580] hover:bg-[#002060] text-white shadow-md hover:shadow-lg transition-all">
                <Plus className="mr-2 h-4 w-4" /> Solicitar Plano
             </Button>
@@ -336,6 +336,8 @@ const ClientDashboard = () => {
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [solCurrentPage, setSolCurrentPage] = useState(1);
+  const SOL_PER_PAGE = 10;
   
   const [isExclusaoModalOpen, setIsExclusaoModalOpen] = useState(false);
   const [exclusaoData, setExclusaoData] = useState({ beneficiarioId: null, tipoPlano: null, motivo: '', dataExclusao: '' });
@@ -436,10 +438,20 @@ const ClientDashboard = () => {
     [solicitacoes, empresaId]
   );
 
-  const solicitacoesExclusaoConcluidas = useMemo(() => 
+  const solicitacoesExclusaoConcluidas = useMemo(() =>
     solicitacoes.filter(s => s.empresa_id === parseInt(empresaId) && s.status === 'CONCLUIDA' && s.tipo_solicitacao === 'EXCLUSAO'),
     [solicitacoes, empresaId]
   );
+
+  const todasSolicitacoesDaEmpresa = useMemo(() =>
+    solicitacoes
+      .filter(s => s.empresa_id === parseInt(empresaId))
+      .sort((a, b) => new Date(b.data_solicitacao) - new Date(a.data_solicitacao)),
+    [solicitacoes, empresaId]
+  );
+
+  const solTotalPages = Math.ceil(todasSolicitacoesDaEmpresa.length / SOL_PER_PAGE);
+  const solPaginadas = todasSolicitacoesDaEmpresa.slice((solCurrentPage - 1) * SOL_PER_PAGE, solCurrentPage * SOL_PER_PAGE);
 
   useEffect(() => { setAge(formData.data_nascimento ? calculateAge(formData.data_nascimento) : ''); }, [formData.data_nascimento]);
 
@@ -469,11 +481,6 @@ const ClientDashboard = () => {
       toast({ variant: "destructive", title: "Erro de Validação", description: "CPF já cadastrado nesta empresa." });
       return;
     }
-    if (user.perfil !== 'CLIENTE' && formData.situacao === 'ATIVO' && !formData.saude_ativo && !formData.vida_ativo && !formData.odonto_ativo) {
-      toast({ variant: 'destructive', title: 'Erro de Validação', description: 'Beneficiários ATIVOS precisam ter ao menos um plano.' });
-      return;
-    }
-    
     setIsSubmitting(true);
     const dataToSave = { ...formData, saude_valor_fatura: Number(formData.saude_valor_fatura) || 0, vida_valor_fatura: Number(formData.vida_valor_fatura) || 0, odonto_valor_fatura: Number(formData.odonto_valor_fatura) || 0, empresa_id: empresaId };
     
@@ -952,6 +959,7 @@ const ClientDashboard = () => {
                                             <TableCell className="text-right">
                                                 <div className="flex justify-end gap-2">
                                                     <Button variant="ghost" size="icon" onClick={() => openModalToEdit(b)} title="Editar"><Edit className="h-4 w-4 text-gray-500 hover:text-blue-600" /></Button>
+                                                    {user.perfil !== 'CLIENTE' && (
                                                     <AlertDialog>
                                                         <AlertDialogTrigger asChild>
                                                             <Button variant="ghost" size="icon" title="Excluir"><Trash2 className="h-4 w-4 text-gray-500 hover:text-red-600" /></Button>
@@ -967,6 +975,7 @@ const ClientDashboard = () => {
                                                             </AlertDialogFooter>
                                                         </AlertDialogContent>
                                                     </AlertDialog>
+                                                    )}
                                                 </div>
                                             </TableCell>
                                         </TableRow>
@@ -992,6 +1001,65 @@ const ClientDashboard = () => {
                 )}
             </CardContent>
           </Card>
+
+          {/* Card de Solicitações */}
+          {todasSolicitacoesDaEmpresa.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ClipboardList className="h-5 w-5" /> Solicitações
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Beneficiário</TableHead>
+                        <TableHead>Plano</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Data</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {solPaginadas.map(s => {
+                        const ben = beneficiarios.find(b => b.id === s.beneficiario_id);
+                        const statusColors = {
+                          'PENDENTE': 'bg-yellow-100 text-yellow-800',
+                          'EM PROCESSAMENTO': 'bg-blue-100 text-blue-800',
+                          'CONCLUIDA': 'bg-green-100 text-green-800',
+                          'REJEITADA': 'bg-red-100 text-red-800',
+                          'CANCELADA': 'bg-gray-100 text-gray-600',
+                        };
+                        const tipoColors = { 'INCLUSAO': 'bg-green-600', 'EXCLUSAO': 'bg-red-600', 'ALTERACAO': 'bg-blue-600' };
+                        return (
+                          <TableRow key={s.id}>
+                            <TableCell className="font-medium">{ben?.nome_completo || '—'}</TableCell>
+                            <TableCell className="capitalize">{s.tipo_plano}</TableCell>
+                            <TableCell><Badge className={`text-white ${tipoColors[s.tipo_solicitacao] || 'bg-gray-500'}`}>{s.tipo_solicitacao}</Badge></TableCell>
+                            <TableCell><Badge className={statusColors[s.status] || 'bg-gray-100 text-gray-600'}>{s.status}</Badge></TableCell>
+                            <TableCell className="text-sm text-gray-500">{formatDate(s.data_solicitacao)}</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+                {solTotalPages > 1 && (
+                  <div className="flex items-center justify-end space-x-2 py-4">
+                    <Button variant="outline" size="sm" onClick={() => setSolCurrentPage(p => Math.max(p - 1, 1))} disabled={solCurrentPage === 1}>
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <div className="text-sm text-gray-600">Página {solCurrentPage} de {solTotalPages}</div>
+                    <Button variant="outline" size="sm" onClick={() => setSolCurrentPage(p => Math.min(p + 1, solTotalPages))} disabled={solCurrentPage === solTotalPages}>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </motion.div>
 
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}><DialogContent className="max-w-2xl w-[90vw] max-h-[90vh] overflow-hidden p-0 flex flex-col"><DialogHeader className="px-4 pt-4"><DialogTitle>{editingBeneficiario ? 'Editar' : 'Adicionar'} Beneficiário</DialogTitle></DialogHeader><form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">{isModalOpen && <ModalFormContent formData={formData} setFormData={setFormData} age={age} titulares={titulares} beneficiario={editingBeneficiario} isCliente={user.perfil === 'CLIENTE'} openSolicitacaoDialog={openSolicitacaoDialog} renderPlanStatusCard={renderPlanStatusCard} setIsExclusaoModalOpen={setIsExclusaoModalOpen} setExclusaoData={setExclusaoData} handleSolicitarAlteracao={handleSolicitarAlteracao} />}<DialogFooter className="px-4 mt-4 pb-4"><Button type="submit" disabled={isSubmitting} className="bg-[#003580] hover:bg-[#002060] text-white">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar</Button></DialogFooter></form></DialogContent></Dialog>

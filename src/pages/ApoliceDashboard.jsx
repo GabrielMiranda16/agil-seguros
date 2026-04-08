@@ -53,7 +53,9 @@ const ApoliceDashboard = () => {
 
   const isAdmin = user?.perfil === 'CEO' || user?.perfil === 'ADM';
   const isCliente = user?.perfil === 'CLIENTE';
-  const showTabs = isAdmin || isCliente;
+  // Tabs de Beneficiários/Solicitações/Coparticipação apenas para SVD
+  const isSVD = apolice?.segmento === 'SAUDE_VIDA_ODONTO';
+  const showTabs = (isAdmin || isCliente) && isSVD;
 
   const [loading, setLoading] = useState(true);
   const [apolice, setApolice] = useState(null);
@@ -183,7 +185,7 @@ const ApoliceDashboard = () => {
 
               {/* Tab: Dados da Apólice */}
               <TabsContent value="dados">
-                <div className="max-w-3xl space-y-4">
+                <div className="max-w-4xl mx-auto space-y-4">
                   {(status.color === 'yellow' || status.color === 'red') && (
                     <div className={`${statusCfg.bg} border rounded-xl p-4 flex items-center gap-3`}>
                       <StatusIcon className={`h-5 w-5 ${statusCfg.color} flex-shrink-0`} />

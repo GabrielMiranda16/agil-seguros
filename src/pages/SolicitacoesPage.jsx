@@ -45,16 +45,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
-import { 
-  Plus, 
-  Search, 
-  Edit, 
-  Trash2, 
-  Loader2, 
-  FileText, 
-  CheckCircle2, 
-  XCircle, 
-  Clock, 
+import {
+  Search,
+  Loader2,
+  FileText,
+  CheckCircle2,
+  XCircle,
+  Clock,
   AlertCircle,
   ChevronLeft,
   ChevronRight
@@ -478,13 +475,13 @@ const SolicitacoesPage = () => {
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleCancel = async (id) => {
     try {
-      await solicitacoesService.deleteSolicitacao(id);
-      setSolicitacoes(prev => prev.filter(s => s.id !== id));
-      toast({ title: 'Sucesso', description: 'Solicitação excluída.' });
+      await solicitacoesService.updateSolicitacao(id, { status: 'CANCELADA' });
+      setSolicitacoes(prev => prev.map(s => s.id === id ? { ...s, status: 'CANCELADA' } : s));
+      toast({ title: 'Sucesso', description: 'Solicitação cancelada.' });
     } catch (error) {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Erro ao excluir solicitação.' });
+      toast({ variant: 'destructive', title: 'Erro', description: 'Erro ao cancelar solicitação.' });
     }
   };
 
@@ -494,6 +491,7 @@ const SolicitacoesPage = () => {
       case 'EM PROCESSAMENTO': return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200"><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Em Processamento</Badge>;
       case 'CONCLUIDA': return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200"><CheckCircle2 className="w-3 h-3 mr-1" /> Concluída</Badge>;
       case 'REJEITADA': return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200"><XCircle className="w-3 h-3 mr-1" /> Rejeitada</Badge>;
+      case 'CANCELADA': return <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200"><XCircle className="w-3 h-3 mr-1" /> Cancelada</Badge>;
       default: return <Badge variant="outline">{status}</Badge>;
     }
   };
@@ -514,9 +512,6 @@ const SolicitacoesPage = () => {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h1 className="text-3xl font-bold tracking-tight">Solicitações</h1>
-          <Button onClick={() => handleOpenModal()} className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="w-4 h-4 mr-2" /> Nova Solicitação
-          </Button>
         </div>
 
         {/* Tab Navigation */}
@@ -624,21 +619,21 @@ const SolicitacoesPage = () => {
 
                                   <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                      <Button variant="ghost" size="icon">
-                                        <Trash2 className="h-4 w-4 text-red-600" />
+                                      <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
+                                        Cancelar
                                       </Button>
                                     </AlertDialogTrigger>
                                     <AlertDialogContent>
                                       <AlertDialogHeader>
-                                        <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                                        <AlertDialogTitle>Cancelar Solicitação</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                          Tem certeza que deseja excluir esta solicitação? Esta ação não pode ser desfeita.
+                                          Tem certeza que deseja cancelar esta solicitação? O cliente poderá solicitá-la novamente.
                                         </AlertDialogDescription>
                                       </AlertDialogHeader>
                                       <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleDelete(solicitacao.id)} className="bg-red-600 text-white hover:bg-red-700">
-                                          Excluir
+                                        <AlertDialogCancel>Voltar</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleCancel(solicitacao.id)} className="bg-red-600 text-white hover:bg-red-700">
+                                          Confirmar Cancelamento
                                         </AlertDialogAction>
                                       </AlertDialogFooter>
                                     </AlertDialogContent>
@@ -723,21 +718,21 @@ const SolicitacoesPage = () => {
                                     <TableCell className="text-right">
                                       <AlertDialog>
                                         <AlertDialogTrigger asChild>
-                                          <Button variant="ghost" size="icon">
-                                            <Trash2 className="h-4 w-4 text-red-600" />
+                                          <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
+                                            Cancelar
                                           </Button>
                                         </AlertDialogTrigger>
                                         <AlertDialogContent>
                                           <AlertDialogHeader>
-                                            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                                            <AlertDialogTitle>Cancelar Solicitação</AlertDialogTitle>
                                             <AlertDialogDescription>
-                                              Esta ação removerá o registro do histórico.
+                                              Deseja cancelar este registro? O cliente poderá solicitar novamente.
                                             </AlertDialogDescription>
                                           </AlertDialogHeader>
                                           <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleDelete(solicitacao.id)} className="bg-red-600 text-white hover:bg-red-700">
-                                              Excluir
+                                            <AlertDialogCancel>Voltar</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleCancel(solicitacao.id)} className="bg-red-600 text-white hover:bg-red-700">
+                                              Confirmar Cancelamento
                                             </AlertDialogAction>
                                           </AlertDialogFooter>
                                         </AlertDialogContent>
