@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Building, Plus, Trash2, ArrowRight, Search, Loader2, GitBranchPlus, Eye, Edit, Users, ChevronDown, ChevronUp, FileClock, DollarSign, FileText, Car, Plane, Home, PawPrint, Building2, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -415,125 +416,325 @@ const AdminDashboard = () => {
     <>
       <Helmet><title>Dashboard ADM - Seguros Ágil</title></Helmet>
       <DashboardLayout>
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="space-y-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4"><h1 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard do Administrador</h1></div>
-          
-          <Card> 
-            <CardHeader>
-              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                <CardTitle>Gestão de Empresas Matrizes</CardTitle>
-                <div className="flex items-center gap-2 w-full md:w-auto"><div className="relative w-full md:w-64"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" /><Input placeholder="Buscar por nome ou CNPJ..." className="pl-10" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} /></div>{canManage && <Button className="whitespace-nowrap w-full md:w-auto bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white" onClick={() => setIsNewEmpresaModalOpen(true)}><Plus className="mr-2 h-4 w-4" /> Nova Empresa</Button>}</div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {isLoading ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24" />) :
-                  filteredMatrizes.length > 0 ? filteredMatrizes.map(matriz => (
-                    <div key={matriz.id} className="flex flex-col p-4 bg-gray-50 rounded-lg border transition-all hover:shadow-md gap-4">
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 w-full">
-                        <div className="flex items-center gap-4"><div className="hidden sm:block bg-blue-100 p-3 rounded-lg"><Building className="h-6 w-6 text-blue-600" /></div><div><p className="font-bold text-lg text-gray-800">{matriz.nome_fantasia || matriz.razao_social}</p><p className="text-sm text-gray-600">CNPJ Matriz: {applyCnpjMask(matriz.cnpj)}</p><p className="text-sm text-gray-600 font-semibold">{getFiliaisForMatriz(matriz.id).length} filial(is)</p></div></div>
-                        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end"><Button variant="outline" size="sm" className="relative" onClick={() => toggleExpandMatriz(matriz)}>{expandedMatrizId === matriz.id ? (<><ChevronUp className="mr-2 h-4 w-4" /> Ocultar Filiais</>) : (<><ChevronDown className="mr-2 h-4 w-4" /> Ver Filiais</>)}<NotifBadge count={getSolicitacoesPendentesFiliais(matriz.id)} /></Button><Button variant="outline" size="sm" onClick={() => navigate(`/cliente/${matriz.id}`)} className="flex-1 sm:flex-none">Acessar <ArrowRight className="ml-2 h-4 w-4" /></Button><Button variant="outline" size="sm" className="relative" onClick={() => goToSolicitacoes(matriz.id)}><FileClock className="mr-2 h-4 w-4" />Solicitações<NotifBadge count={getSolicitacoesPendentesCount(matriz.id)} /></Button><Button variant="outline" size="sm" onClick={() => goToCoparticipacao(matriz.id)}><DollarSign className="mr-2 h-4 w-4" />Coparticipação</Button>{canManage && (<><Button variant="outline" size="icon" onClick={() => openEditModal(matriz)}><Edit className="h-4 w-4" /></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle><AlertDialogDescription>Isso excluirá permanentemente a empresa matriz e o seu usuário cliente. Esta ação não pode ser desfeita e só é permitida se não houver filiais.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => deleteMatriz(matriz.id)} className={buttonVariants({ variant: "destructive" })}>Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></>)}</div>
-                      </div>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="space-y-6">
 
-                      {expandedMatrizId === matriz.id && (
-                        <div className="w-full mt-2 pt-3 border-t">
-                          <div className="flex items-center justify-between mb-3"><p className="text-sm font-semibold text-gray-700">Filiais cadastradas</p>{canManage && (<Button size="sm" variant="outline" onClick={() => openAddFilialPopup(matriz)}><GitBranchPlus className="mr-2 h-4 w-4" />Adicionar Filial</Button>)}</div>
-                          <div className="space-y-2">{getFiliaisForMatriz(matriz.id).length > 0 ? (getFiliaisForMatriz(matriz.id).map((filial) => (<div key={filial.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-gray-50 rounded-lg border"><div><p className="font-semibold">{filial.nome_fantasia || filial.razao_social}</p><p className="text-xs text-gray-600">{applyCnpjMask(filial.cnpj)}</p></div><div className="flex flex-wrap items-center gap-2 justify-end"><Button variant="outline" size="sm" onClick={() => navigate(`/cliente/${filial.id}`)}>Entrar <ArrowRight className="ml-2 h-4 w-4" /></Button><Button variant="outline" size="sm" className="relative" onClick={() => goToSolicitacoes(filial.id)}><FileClock className="mr-2 h-4 w-4" />Solicitações<NotifBadge count={getSolicitacoesPendentesCount(filial.id)} /></Button><Button variant="outline" size="sm" onClick={() => goToCoparticipacao(filial.id)}><DollarSign className="mr-2 h-4 w-4" />Coparticipação</Button>{canManage && (<><Button variant="outline" size="icon" onClick={() => openEditFilialForm(filial)}><Edit className="h-4 w-4" /></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Confirmar Exclusão de Filial</AlertDialogTitle><AlertDialogDescription>Isso excluirá a filial e TODOS os seus beneficiários. Esta ação não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => deleteFilial(filial.id)} className={buttonVariants({ variant: "destructive" })}>Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></>)}</div></div>))) : (<p className="text-sm text-gray-500">Nenhuma filial cadastrada.</p>)}</div>
-                          {showFilialForm && selectedMatriz?.id === matriz.id && (
-                            <div className="mt-4 p-4 rounded-lg border bg-white">
-                              <h4 className="font-semibold mb-3">{editingFilial ? 'Editar Filial' : 'Adicionar Filial'}</h4>
-                              <form onSubmit={validateAndSubmitFilial} className="space-y-4"><div><Label htmlFor="razao_social_filial">Razão Social *</Label><Input id="razao_social" value={filialFormData.razao_social} onChange={e => handleInputChange(e, setFilialFormData)} /></div><div><Label htmlFor="nome_fantasia_filial">Nome Fantasia</Label><Input id="nome_fantasia" value={filialFormData.nome_fantasia} onChange={e => handleInputChange(e, setFilialFormData)} /></div><div><Label htmlFor="cnpj_filial">CNPJ *</Label><Input id="cnpj" value={filialFormData.cnpj} onChange={e => handleInputChange(e, setFilialFormData)} /></div><div><Label htmlFor="endereco_completo_filial">Endereço</Label><Input id="endereco_completo" value={filialFormData.endereco_completo} onChange={e => handleInputChange(e, setFilialFormData)} /></div><div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setShowFilialForm(false)}>Cancelar</Button><Button type="submit" disabled={isSubmitting} className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{editingFilial ? (<><Edit className="mr-2 h-4 w-4" />Salvar Alterações</>) : (<><GitBranchPlus className="mr-2 h-4 w-4" />Adicionar Filial</>)}</Button></div></form>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900">Dashboard do Administrador</h1>
+          </div>
+
+          <Tabs defaultValue="empresas" className="w-full">
+            <TabsList className="mb-4">
+              <TabsTrigger value="empresas" className="flex items-center gap-2">
+                <Building className="h-4 w-4" /> Empresas
+              </TabsTrigger>
+              <TabsTrigger value="apolices" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" /> Apólices
+              </TabsTrigger>
+              <TabsTrigger value="beneficiarios" className="flex items-center gap-2">
+                <Users className="h-4 w-4" /> Beneficiários
+              </TabsTrigger>
+            </TabsList>
+
+            {/* ── ABA EMPRESAS ── */}
+            <TabsContent value="empresas" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <CardTitle>Gestão de Empresas Matrizes</CardTitle>
+                    <div className="flex items-center gap-2 w-full md:w-auto">
+                      <div className="relative w-full md:w-64">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                        <Input placeholder="Buscar por nome ou CNPJ..." className="pl-10" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                      </div>
+                      {canManage && (
+                        <Button className="whitespace-nowrap w-full md:w-auto bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white" onClick={() => setIsNewEmpresaModalOpen(true)}>
+                          <Plus className="mr-2 h-4 w-4" /> Nova Empresa
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {isLoading ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24" />) :
+                      filteredMatrizes.length > 0 ? filteredMatrizes.map(matriz => (
+                        <div key={matriz.id} className="flex flex-col rounded-xl border bg-white shadow-sm overflow-hidden">
+                          {/* Cabeçalho da matriz */}
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
+                            <div className="flex items-center gap-3">
+                              <div className="bg-blue-100 p-2 rounded-lg shrink-0">
+                                <Building className="h-5 w-5 text-blue-600" />
+                              </div>
+                              <div>
+                                <p className="font-bold text-gray-800">{matriz.nome_fantasia || matriz.razao_social}</p>
+                                <p className="text-xs text-gray-500">CNPJ: {applyCnpjMask(matriz.cnpj)} · {getFiliaisForMatriz(matriz.id).length} filial(is)</p>
+                              </div>
+                            </div>
+                            {/* Ações principais da matriz */}
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Button variant="outline" size="sm" onClick={() => navigate(`/cliente/${matriz.id}`)}>
+                                Acessar <ArrowRight className="ml-1 h-4 w-4" />
+                              </Button>
+                              <Button variant="outline" size="sm" className="relative" onClick={() => goToSolicitacoes(matriz.id)}>
+                                <FileClock className="mr-1 h-4 w-4" /> Solicitações
+                                <NotifBadge count={getSolicitacoesPendentesCount(matriz.id)} />
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => goToCoparticipacao(matriz.id)}>
+                                <DollarSign className="mr-1 h-4 w-4" /> Copart.
+                              </Button>
+                              {canManage && (
+                                <>
+                                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEditModal(matriz)}>
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button variant="destructive" size="icon" className="h-8 w-8"><Trash2 className="h-4 w-4" /></Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader><AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle><AlertDialogDescription>Isso excluirá permanentemente a empresa matriz e o usuário cliente. Só é permitido se não houver filiais.</AlertDialogDescription></AlertDialogHeader>
+                                      <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => deleteMatriz(matriz.id)} className={buttonVariants({ variant: "destructive" })}>Excluir</AlertDialogAction></AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </>
+                              )}
+                              <Button variant="ghost" size="sm" className="relative" onClick={() => toggleExpandMatriz(matriz)}>
+                                {expandedMatrizId === matriz.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                <NotifBadge count={getSolicitacoesPendentesFiliais(matriz.id)} />
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Filiais expandíveis */}
+                          {expandedMatrizId === matriz.id && (
+                            <div className="p-4 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <p className="text-sm font-semibold text-gray-600">Filiais</p>
+                                {canManage && (
+                                  <Button size="sm" variant="outline" onClick={() => openAddFilialPopup(matriz)}>
+                                    <GitBranchPlus className="mr-2 h-4 w-4" /> Adicionar Filial
+                                  </Button>
+                                )}
+                              </div>
+                              <div className="space-y-2">
+                                {getFiliaisForMatriz(matriz.id).length > 0 ? getFiliaisForMatriz(matriz.id).map(filial => (
+                                  <div key={filial.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-gray-50 rounded-lg border">
+                                    <div>
+                                      <p className="font-medium text-sm">{filial.nome_fantasia || filial.razao_social}</p>
+                                      <p className="text-xs text-gray-500">{applyCnpjMask(filial.cnpj)}</p>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <Button variant="outline" size="sm" onClick={() => navigate(`/cliente/${filial.id}`)}>Entrar <ArrowRight className="ml-1 h-4 w-4" /></Button>
+                                      <Button variant="outline" size="sm" className="relative" onClick={() => goToSolicitacoes(filial.id)}>
+                                        <FileClock className="mr-1 h-4 w-4" /> Solicitações
+                                        <NotifBadge count={getSolicitacoesPendentesCount(filial.id)} />
+                                      </Button>
+                                      <Button variant="outline" size="sm" onClick={() => goToCoparticipacao(filial.id)}>
+                                        <DollarSign className="mr-1 h-4 w-4" /> Copart.
+                                      </Button>
+                                      {canManage && (
+                                        <>
+                                          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEditFilialForm(filial)}><Edit className="h-4 w-4" /></Button>
+                                          <AlertDialog>
+                                            <AlertDialogTrigger asChild><Button variant="destructive" size="icon" className="h-8 w-8"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                              <AlertDialogHeader><AlertDialogTitle>Confirmar Exclusão de Filial</AlertDialogTitle><AlertDialogDescription>Isso excluirá a filial e TODOS os seus beneficiários. Esta ação não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader>
+                                              <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => deleteFilial(filial.id)} className={buttonVariants({ variant: "destructive" })}>Excluir</AlertDialogAction></AlertDialogFooter>
+                                            </AlertDialogContent>
+                                          </AlertDialog>
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                )) : <p className="text-sm text-gray-500">Nenhuma filial cadastrada.</p>}
+                              </div>
+                              {showFilialForm && selectedMatriz?.id === matriz.id && (
+                                <div className="mt-2 p-4 rounded-lg border bg-white">
+                                  <h4 className="font-semibold mb-3">{editingFilial ? 'Editar Filial' : 'Adicionar Filial'}</h4>
+                                  <form onSubmit={validateAndSubmitFilial} className="space-y-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                      <div><Label>Razão Social *</Label><Input id="razao_social" value={filialFormData.razao_social} onChange={e => handleInputChange(e, setFilialFormData)} /></div>
+                                      <div><Label>Nome Fantasia</Label><Input id="nome_fantasia" value={filialFormData.nome_fantasia} onChange={e => handleInputChange(e, setFilialFormData)} /></div>
+                                      <div><Label>CNPJ *</Label><Input id="cnpj" value={filialFormData.cnpj} onChange={e => handleInputChange(e, setFilialFormData)} /></div>
+                                      <div><Label>Endereço</Label><Input id="endereco_completo" value={filialFormData.endereco_completo} onChange={e => handleInputChange(e, setFilialFormData)} /></div>
+                                    </div>
+                                    <div className="flex justify-end gap-2">
+                                      <Button type="button" variant="outline" onClick={() => setShowFilialForm(false)}>Cancelar</Button>
+                                      <Button type="submit" disabled={isSubmitting} className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+                                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        {editingFilial ? 'Salvar Alterações' : 'Adicionar Filial'}
+                                      </Button>
+                                    </div>
+                                  </form>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
+                      )) : <p className="text-center text-gray-500 py-8">Nenhuma empresa encontrada.</p>
+                    }
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* ── ABA APÓLICES ── */}
+            <TabsContent value="apolices" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5" /> Gestão de Apólices
+                    </CardTitle>
+                    <div className="flex items-center gap-2 w-full md:w-auto">
+                      <Select value={selectedEmpresaApolice || "all"} onValueChange={v => setSelectedEmpresaApolice(v === "all" ? "" : v)}>
+                        <SelectTrigger className="w-full md:w-64"><SelectValue placeholder="Filtrar por empresa" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todas as empresas</SelectItem>
+                          {matrizes.map(m => (
+                            <React.Fragment key={m.id}>
+                              <SelectItem value={String(m.id)}>{m.nome_fantasia || m.razao_social}</SelectItem>
+                              {filiais.filter(f => f.empresa_matriz_id === m.id).map(f => (
+                                <SelectItem key={f.id} value={String(f.id)} className="pl-6">↳ {f.nome_fantasia || f.razao_social}</SelectItem>
+                              ))}
+                            </React.Fragment>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {canManage && (
+                        <Button className="whitespace-nowrap bg-gradient-to-r from-blue-600 to-purple-600 text-white" onClick={openNewApolice}>
+                          <Plus className="mr-2 h-4 w-4" /> Nova Apólice
+                        </Button>
                       )}
                     </div>
-                  )) : <p className="text-center text-gray-500 py-8">Nenhuma empresa encontrada.</p>
-                }
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-white border-blue-100 shadow-sm"><CardHeader className="pb-3"><CardTitle className="text-lg font-medium text-gray-700">Selecione uma Empresa para Visualizar Dados</CardTitle></CardHeader><CardContent><Select value={selectedCompanyId ? String(selectedCompanyId) : ""} onValueChange={(value) => setSelectedCompanyId(Number(value))}><SelectTrigger className="w-full md:w-[400px]"><SelectValue placeholder="Selecione matriz ou filial" /></SelectTrigger><SelectContent>{matrizes.map((matriz) => (<React.Fragment key={matriz.id}><SelectItem value={String(matriz.id)} className="font-semibold">Matriz: {matriz.nome_fantasia || matriz.razao_social} - {applyCnpjMask(matriz.cnpj)}</SelectItem>{getFiliaisForMatriz(matriz.id).map((filial) => (<SelectItem key={filial.id} value={String(filial.id)} className="pl-6">↳ Filial: {filial.nome_fantasia || filial.razao_social} - {applyCnpjMask(filial.cnpj)}</SelectItem>))}</React.Fragment>))}</SelectContent></Select></CardContent></Card>
-
-           <Card><CardHeader><CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" />Beneficiários (Visão Geral - {empresas.find(e => e.id === selectedCompanyId)?.nome_fantasia || empresas.find(e => e.id === selectedCompanyId)?.razao_social || 'Nenhuma Selecionada'})</CardTitle></CardHeader><CardContent>{beneficiariosFiltrados.length === 0 ? (<div className="text-center py-8 text-gray-500">Nenhum beneficiário encontrado para a empresa selecionada (para a empresa selecionada, se for matriz).</div>) : (<div className="rounded-md border"><div className="w-full overflow-auto"><table className="w-full text-sm text-left"><thead className="bg-gray-50 text-gray-700 font-medium border-b"><tr><th className="p-3">Nome</th><th className="p-3">CPF</th><th className="p-3">Tipo</th><th className="p-3">Empresa</th></tr></thead><tbody>{beneficiariosFiltrados.map((beneficiario) => { const empresaDoBeneficiario = empresas.find(e => e.id === beneficiario.empresa_id); return (<tr key={beneficiario.id} className="border-b last:border-0 hover:bg-gray-50"><td className="p-3 font-medium">{beneficiario.nome_completo || beneficiario.nome || 'Sem nome'}</td><td className="p-3">{applyCpfMask(beneficiario.cpf)}</td><td className="p-3"><span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${beneficiario.parentesco === 'TITULAR' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{beneficiario.parentesco}</span></td><td className="p-3 text-gray-500">{empresaDoBeneficiario?.nome_fantasia || empresaDoBeneficiario?.razao_social || 'N/A'}<span className="ml-1 text-xs text-gray-400">({empresaDoBeneficiario?.tipo})</span></td></tr>); })}</tbody></table></div></div>)}</CardContent></Card>
-
-          {/* --- Gestão de Apólices --- */}
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" /> Gestão de Apólices</CardTitle>
-                <div className="flex items-center gap-2 w-full md:w-auto">
-                  <Select value={selectedEmpresaApolice || "all"} onValueChange={v => setSelectedEmpresaApolice(v === "all" ? "" : v)}>
-                    <SelectTrigger className="w-full md:w-64"><SelectValue placeholder="Filtrar por empresa" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todas as empresas</SelectItem>
-                      {matrizes.map(m => (
-                        <React.Fragment key={m.id}>
-                          <SelectItem value={String(m.id)}>{m.nome_fantasia || m.razao_social}</SelectItem>
-                          {filiais.filter(f => f.empresa_matriz_id === m.id).map(f => (
-                            <SelectItem key={f.id} value={String(f.id)} className="pl-6">↳ {f.nome_fantasia || f.razao_social}</SelectItem>
-                          ))}
-                        </React.Fragment>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {canManage && (
-                    <Button className="whitespace-nowrap bg-gradient-to-r from-blue-600 to-purple-600 text-white" onClick={openNewApolice}>
-                      <Plus className="mr-2 h-4 w-4" /> Nova Apólice
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-16 bg-gray-100 rounded animate-pulse" />)}</div>
-              ) : apolicesFiltradas.length === 0 ? (
-                <div className="text-center py-10 text-gray-400">
-                  <FileText className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                  <p>Nenhuma apólice cadastrada.</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {apolicesFiltradas.map(ap => {
-                    const status = apolicesService.getStatusApolice(ap.vigencia_fim);
-                    const Icon = SEGMENTO_ICONS[ap.segmento] || FileText;
-                    const empresa = empresas.find(e => e.id === ap.empresa_id);
-                    const statusColors = { green: 'bg-green-100 text-green-800', yellow: 'bg-yellow-100 text-yellow-800', red: 'bg-red-100 text-red-800', gray: 'bg-gray-100 text-gray-600' };
-                    return (
-                      <div key={ap.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-gray-50 rounded-lg border hover:shadow-sm transition-shadow">
-                        <div className="flex items-center gap-3">
-                          <div className="bg-white p-2 rounded-lg border"><Icon className="h-5 w-5 text-gray-600" /></div>
-                          <div>
-                            <p className="font-semibold text-gray-800">Apólice {ap.numero_apolice || '—'} · {ap.seguradora || '—'}</p>
-                            <p className="text-xs text-gray-500">{SEGMENTOS[ap.segmento]?.label} · {empresa?.nome_fantasia || empresa?.razao_social || '—'}</p>
-                            <p className="text-xs text-gray-400">Vigência: {ap.vigencia_inicio || '—'} → {ap.vigencia_fim || '—'}</p>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {isLoading ? (
+                    <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-16" />)}</div>
+                  ) : apolicesFiltradas.length === 0 ? (
+                    <div className="text-center py-12 text-gray-400">
+                      <FileText className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                      <p className="font-medium">Nenhuma apólice cadastrada</p>
+                      <p className="text-sm mt-1">Clique em "Nova Apólice" para começar.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {apolicesFiltradas.map(ap => {
+                        const status = apolicesService.getStatusApolice(ap.vigencia_fim);
+                        const Icon = SEGMENTO_ICONS[ap.segmento] || FileText;
+                        const empresa = empresas.find(e => e.id === ap.empresa_id);
+                        const statusColors = { green: 'bg-green-100 text-green-800', yellow: 'bg-yellow-100 text-yellow-800', red: 'bg-red-100 text-red-800', gray: 'bg-gray-100 text-gray-600' };
+                        return (
+                          <div key={ap.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-gray-50 rounded-xl border hover:shadow-sm transition-shadow">
+                            <div className="flex items-center gap-3">
+                              <div className="bg-white p-2 rounded-lg border shrink-0"><Icon className="h-5 w-5 text-gray-600" /></div>
+                              <div>
+                                <p className="font-semibold text-gray-800">Apólice {ap.numero_apolice || '—'} · {ap.seguradora || '—'}</p>
+                                <p className="text-xs text-gray-500">{SEGMENTOS[ap.segmento]?.label} · {empresa?.nome_fantasia || empresa?.razao_social || '—'}</p>
+                                <p className="text-xs text-gray-400">Vigência: {ap.vigencia_inicio || '—'} → {ap.vigencia_fim || '—'}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {(status.color === 'yellow' || status.color === 'red') && <AlertTriangle className={`h-4 w-4 ${status.color === 'red' ? 'text-red-500' : 'text-yellow-500'}`} />}
+                              <span className={`text-xs px-2 py-1 rounded-full font-medium ${statusColors[status.color]}`}>{status.label}</span>
+                              {canManage && (
+                                <>
+                                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEditApolice(ap)}><Edit className="h-4 w-4" /></Button>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild><Button variant="destructive" size="icon" className="h-8 w-8"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader><AlertDialogTitle>Remover Apólice?</AlertDialogTitle><AlertDialogDescription>Esta apólice deixará de aparecer para o cliente.</AlertDialogDescription></AlertDialogHeader>
+                                      <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteApolice(ap.id)} className={buttonVariants({ variant: 'destructive' })}>Remover</AlertDialogAction></AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {(status.color === 'yellow' || status.color === 'red') && <AlertTriangle className={`h-4 w-4 ${status.color === 'red' ? 'text-red-500' : 'text-yellow-500'}`} />}
-                          <span className={`text-xs px-2 py-1 rounded-full font-medium ${statusColors[status.color]}`}>{status.label}</span>
-                          {canManage && (
-                            <>
-                              <Button variant="outline" size="icon" onClick={() => openEditApolice(ap)}><Edit className="h-4 w-4" /></Button>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild><Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader><AlertDialogTitle>Remover Apólice?</AlertDialogTitle><AlertDialogDescription>Esta apólice deixará de aparecer para o cliente.</AlertDialogDescription></AlertDialogHeader>
-                                  <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteApolice(ap.id)} className={buttonVariants({ variant: 'destructive' })}>Remover</AlertDialogAction></AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </>
-                          )}
-                        </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* ── ABA BENEFICIÁRIOS ── */}
+            <TabsContent value="beneficiarios" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> Beneficiários por Empresa</CardTitle>
+                    <Select value={selectedCompanyId ? String(selectedCompanyId) : ""} onValueChange={value => setSelectedCompanyId(Number(value))}>
+                      <SelectTrigger className="w-full sm:w-[360px]"><SelectValue placeholder="Selecione matriz ou filial" /></SelectTrigger>
+                      <SelectContent>
+                        {matrizes.map(matriz => (
+                          <React.Fragment key={matriz.id}>
+                            <SelectItem value={String(matriz.id)} className="font-semibold">
+                              Matriz: {matriz.nome_fantasia || matriz.razao_social}
+                            </SelectItem>
+                            {getFiliaisForMatriz(matriz.id).map(filial => (
+                              <SelectItem key={filial.id} value={String(filial.id)} className="pl-6">
+                                ↳ Filial: {filial.nome_fantasia || filial.razao_social}
+                              </SelectItem>
+                            ))}
+                          </React.Fragment>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {isLoading ? (
+                    <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-12" />)}</div>
+                  ) : beneficiariosFiltrados.length === 0 ? (
+                    <div className="text-center py-12 text-gray-400">
+                      <Users className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                      <p className="font-medium">Nenhum beneficiário encontrado</p>
+                      <p className="text-sm mt-1">Selecione uma empresa acima para visualizar.</p>
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border overflow-hidden">
+                      <div className="w-full overflow-auto">
+                        <table className="w-full text-sm text-left">
+                          <thead className="bg-gray-50 text-gray-600 font-medium border-b">
+                            <tr>
+                              <th className="p-3">Nome</th>
+                              <th className="p-3">CPF</th>
+                              <th className="p-3">Tipo</th>
+                              <th className="p-3 hidden sm:table-cell">Empresa</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {beneficiariosFiltrados.map(beneficiario => {
+                              const emp = empresas.find(e => e.id === beneficiario.empresa_id);
+                              return (
+                                <tr key={beneficiario.id} className="border-b last:border-0 hover:bg-gray-50">
+                                  <td className="p-3 font-medium">{beneficiario.nome_completo || beneficiario.nome || 'Sem nome'}</td>
+                                  <td className="p-3 text-gray-500">{applyCpfMask(beneficiario.cpf)}</td>
+                                  <td className="p-3">
+                                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${beneficiario.parentesco === 'TITULAR' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
+                                      {beneficiario.parentesco}
+                                    </span>
+                                  </td>
+                                  <td className="p-3 text-gray-500 hidden sm:table-cell">
+                                    {emp?.nome_fantasia || emp?.razao_social || 'N/A'}
+                                    <span className="ml-1 text-xs text-gray-400">({emp?.tipo})</span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+          </Tabs>
 
         </motion.div>
       </DashboardLayout>
