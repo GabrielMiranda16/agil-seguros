@@ -1,11 +1,14 @@
 import { supabase } from '@/lib/customSupabaseClient';
 
 export const SEGMENTOS = {
-  AUTO_FROTA:   { label: 'Auto e Frota',                slug: 'auto-frota'   },
-  VIAGEM:       { label: 'Viagem',                      slug: 'viagem'       },
-  RESIDENCIAL:  { label: 'Residencial',                 slug: 'residencial'  },
-  PET_SAUDE:    { label: 'Pet Saúde',                   slug: 'pet-saude'    },
-  EMPRESARIAL:  { label: 'Empresarial',                 slug: 'empresarial'  },
+  SAUDE_VIDA_ODONTO: { label: 'Saúde, Vida e Odonto',  slug: 'saude-vida-odonto' },
+  AUTO_FROTA:        { label: 'Auto e Frota',           slug: 'auto-frota'        },
+  VIAGEM:            { label: 'Viagem',                 slug: 'viagem'            },
+  RESIDENCIAL:       { label: 'Residencial',            slug: 'residencial'       },
+  PET_SAUDE:         { label: 'Pet Saúde',              slug: 'pet-saude'         },
+  EMPRESARIAL:       { label: 'Empresarial',            slug: 'empresarial'       },
+  CARGAS:            { label: 'Cargas',                 slug: 'cargas'            },
+  EQUIPAMENTOS:      { label: 'Equipamentos',           slug: 'equipamentos'      },
 };
 
 export const apolicesService = {

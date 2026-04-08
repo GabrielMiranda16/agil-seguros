@@ -8,6 +8,8 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import LoginPage from '@/pages/Login';
 import CEODashboard from '@/pages/CEODashboard';
 import AdminDashboard from '@/pages/AdminDashboard';
+import AdminClientePage from '@/pages/AdminClientePage';
+import AdminSegmentoPage from '@/pages/AdminSegmentoPage';
 import ClientDashboard from '@/pages/ClientDashboard';
 import UnauthorizedPage from '@/pages/Unauthorized';
 import SelectCompanyPage from '@/pages/SelectCompany';
@@ -53,8 +55,24 @@ const AppRoutes = () => {
           </ProtectedRoute>
         } 
       />
-      <Route 
-        path="/solicitacoes" 
+      <Route
+        path="/admin/cliente/:matrizId"
+        element={
+          <ProtectedRoute allowedRoles={['CEO', 'ADM']}>
+            <AdminClientePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/cliente/:matrizId/segmento/:segmento"
+        element={
+          <ProtectedRoute allowedRoles={['CEO', 'ADM']}>
+            <AdminSegmentoPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/solicitacoes"
         element={
           <ProtectedRoute allowedRoles={['CEO', 'ADM']}>
             <SolicitacoesPage />
