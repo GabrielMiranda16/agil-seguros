@@ -176,7 +176,6 @@ const SelectSegmento = () => {
       const endereco_completo = parts.length > 0 ? parts.join(', ') : (dadosForm.endereco_completo || '');
       const { error } = await supabaseClient.from('empresas').update({
         razao_social: dadosForm.razao_social,
-        data_nascimento: dadosForm.data_nascimento || null,
         endereco_completo,
       }).eq('id', empresa.id);
       if (error) throw error;
@@ -349,12 +348,6 @@ const SelectSegmento = () => {
               <Label>{isPF ? 'CPF' : 'CNPJ'}</Label>
               <Input value={dadosForm.cnpj || ''} readOnly className="bg-gray-50 text-gray-500" />
             </div>
-            {isPF && (
-              <div>
-                <Label>Data de Nascimento</Label>
-                <Input type="date" value={dadosForm.data_nascimento || ''} onChange={e => setDadosForm(p => ({ ...p, data_nascimento: e.target.value }))} />
-              </div>
-            )}
             {/* Endereço atual */}
             {dadosForm.endereco_completo && (
               <div className="p-3 bg-gray-50 rounded-md border text-sm text-gray-600">
