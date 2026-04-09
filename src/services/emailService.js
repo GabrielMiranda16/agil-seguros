@@ -13,8 +13,7 @@ export function generateTempPassword(length = 10) {
 
 export async function sendWelcomeEmail({ nomeCliente, emailCliente, senhaTemporaria }) {
   if (!SERVICE_ID || !TEMPLATE_ID || !PUBLIC_KEY) {
-    console.warn('EmailJS não configurado — variáveis de ambiente ausentes.');
-    return false;
+    return { ok: false, error: 'Variáveis de ambiente do EmailJS não configuradas no servidor.' };
   }
 
   try {
@@ -34,15 +33,14 @@ export async function sendWelcomeEmail({ nomeCliente, emailCliente, senhaTempora
       }),
     });
 
+    const text = await response.text();
+
     if (!response.ok) {
-      const text = await response.text();
-      console.error('EmailJS erro HTTP:', response.status, text);
-      return false;
+      return { ok: false, error: `EmailJS [${response.status}]: ${text}` };
     }
 
-    return true;
+    return { ok: true };
   } catch (error) {
-    console.error('Erro ao enviar e-mail via EmailJS:', error);
-    return false;
+    return { ok: false, error: error.message };
   }
 }

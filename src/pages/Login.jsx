@@ -72,15 +72,15 @@ const LoginPage = () => {
     setIsSendingReset(true);
     try {
       const { user, tempPassword } = await authService.resetPassword(forgotEmail);
-      const emailSent = await sendWelcomeEmail({
+      const emailResult = await sendWelcomeEmail({
         nomeCliente: user.name || user.email,
         emailCliente: user.email,
         senhaTemporaria: tempPassword,
       });
-      if (emailSent) {
+      if (emailResult.ok) {
         toast({ title: 'E-mail enviado!', description: 'Verifique sua caixa de entrada com a senha temporária.' });
       } else {
-        toast({ title: 'Senha redefinida', description: `Sua nova senha temporária é: ${tempPassword}`, duration: 20000 });
+        toast({ title: 'Senha redefinida', description: `Senha temporária: ${tempPassword} | Erro: ${emailResult.error}`, duration: 20000 });
       }
       setIsForgotOpen(false);
       setForgotEmail('');

@@ -257,7 +257,7 @@ const AdminDashboard = () => {
       setUsers([...users, createdUser]);
 
       // Envia email com senha temporária
-      const emailOk = await sendWelcomeEmail({
+      const emailResult = await sendWelcomeEmail({
         nomeCliente: razao_social,
         emailCliente: email_cliente,
         senhaTemporaria,
@@ -265,10 +265,10 @@ const AdminDashboard = () => {
 
       toast({
         title: 'Cliente criado com sucesso!',
-        description: emailOk
+        description: emailResult.ok
           ? `Senha temporária enviada para ${email_cliente}.`
-          : `Senha temporária: ${senhaTemporaria} (e-mail não pôde ser enviado — verifique a configuração do EmailJS).`,
-        duration: emailOk ? 4000 : 10000,
+          : `Senha temporária: ${senhaTemporaria} | Erro e-mail: ${emailResult.error}`,
+        duration: 15000,
       });
       setIsNewClienteModalOpen(false);
       setNewEmpresa({ razao_social: '', nome_fantasia: '', cnpj: '', endereco_completo: '', email_cliente: '' });
