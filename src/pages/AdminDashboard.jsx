@@ -185,7 +185,10 @@ const AdminDashboard = () => {
     if (nums.length !== 8) return;
     setIsCepLoading(true);
     try {
-      const res = await fetch(`https://viacep.com.br/ws/${nums}/json/`);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(`https://viacep.com.br/ws/${nums}/json/`, { signal: controller.signal });
+      clearTimeout(timeout);
       const data = await res.json();
       if (data.erro) return toast({ variant: 'destructive', title: 'CEP não encontrado' });
       setNewEmpresa(prev => ({
@@ -216,7 +219,7 @@ const AdminDashboard = () => {
     }
     if (users.some(u => u.email === email_cliente))
       return toast({ variant: 'destructive', title: 'Erro', description: 'E-mail já cadastrado.' });
-    if (empresas.some(emp => emp.cnpj.replace(/\D/g, '') === cnpj.replace(/\D/g, '')))
+    if (empresas.some(emp => emp.cnpj?.replace(/\D/g, '') === cnpj.replace(/\D/g, '')))
       return toast({ variant: 'destructive', title: 'Erro', description: tipoPessoa === 'PF' ? 'CPF já cadastrado.' : 'CNPJ já cadastrado.' });
 
     // Monta endereço completo para PF e PJ
@@ -267,8 +270,8 @@ const AdminDashboard = () => {
         title: 'Cliente criado com sucesso!',
         description: emailResult.ok
           ? `Senha temporária enviada para ${email_cliente}.`
-          : `Senha temporária: ${senhaTemporaria} | Erro e-mail: ${emailResult.error}`,
-        duration: 15000,
+          : `E-mail não enviado. Verifique as configurações de e-mail. Erro: ${emailResult.error}`,
+        duration: 10000,
       });
       setIsNewClienteModalOpen(false);
       setNewEmpresa({ razao_social: '', nome_fantasia: '', cnpj: '', endereco_completo: '', email_cliente: '' });
@@ -302,12 +305,20 @@ const AdminDashboard = () => {
       if (senha_cliente) updatePayload.password = senha_cliente;
       await authService.updateUser(clientUser.id, updatePayload);
       // Use direct supabase call to avoid cleanEmpresaData nullifying required fields
+      const isPF = editingEmpresa.cnpj?.replace(/\D/g, '').length === 11;
+      const empUpdate = {
+        razao_social: editingEmpresa.razao_social || null,
+        endereco_completo: editingEmpresa.endereco_completo || null,
+        email_cliente,
+        cnpj: cnpj.replace(/\D/g, ''),
+        ...(isPF && { data_nascimento: editingEmpresa.data_nascimento || null }),
+      };
       const { error: empUpdateError } = await supabaseClient.from('empresas')
-        .update({ email_cliente, cnpj: cnpj.replace(/\D/g, '') })
+        .update(empUpdate)
         .eq('id', editingEmpresa.id);
       if (empUpdateError) throw empUpdateError;
       setUsers(prev => prev.map(u => u.id === clientUser.id ? { ...u, ...updatePayload } : u));
-      setEmpresas(prev => prev.map(e => e.id === editingEmpresa.id ? { ...e, email_cliente, cnpj } : e));
+      setEmpresas(prev => prev.map(e => e.id === editingEmpresa.id ? { ...e, ...empUpdate } : e));
       toast({ title: 'Sucesso', description: 'Dados do cliente atualizados.' });
       setIsEditEmpresaModalOpen(false);
       setEditingEmpresa(null);
@@ -396,7 +407,7 @@ const AdminDashboard = () => {
   const openEditModal = (matriz) => {
     if (!canManage) return;
     const clientUser = users.find(u => u.empresa_matriz_id === matriz.id);
-    setEditingEmpresa({ ...matriz, email_cliente: clientUser?.email || '', senha_cliente: '' });
+    setEditingEmpresa({ ...matriz, email_cliente: clientUser?.email || '', senha_cliente: '', data_nascimento: matriz.data_nascimento || '' });
     setIsEditEmpresaModalOpen(true);
   };
 
@@ -767,8 +778,22 @@ const AdminDashboard = () => {
             <form onSubmit={validateAndSubmitEditMatriz}>
               <div className="space-y-4 py-4">
                 <div>
+                  <Label htmlFor="razao_social">{editingEmpresa.cnpj?.replace(/\D/g, '').length === 11 ? 'Nome Completo' : 'Razão Social'} *</Label>
+                  <Input id="razao_social" value={editingEmpresa.razao_social || ''} onChange={e => handleInputChange(e, setEditingEmpresa)} />
+                </div>
+                <div>
                   <Label htmlFor="cnpj">{editingEmpresa.cnpj?.replace(/\D/g, '').length === 11 ? 'CPF' : 'CNPJ'} *</Label>
                   <Input id="cnpj" value={editingEmpresa.cnpj || ''} onChange={e => handleInputChange(e, setEditingEmpresa)} />
+                </div>
+                {editingEmpresa.cnpj?.replace(/\D/g, '').length === 11 && (
+                  <div>
+                    <Label htmlFor="data_nascimento">Data de Nascimento</Label>
+                    <Input id="data_nascimento" type="date" value={editingEmpresa.data_nascimento || ''} onChange={e => handleInputChange(e, setEditingEmpresa)} />
+                  </div>
+                )}
+                <div>
+                  <Label htmlFor="endereco_completo">Endereço</Label>
+                  <Input id="endereco_completo" value={editingEmpresa.endereco_completo || ''} onChange={e => handleInputChange(e, setEditingEmpresa)} />
                 </div>
                 <div><Label htmlFor="email_cliente">E-mail *</Label><Input id="email_cliente" type="email" value={editingEmpresa.email_cliente} onChange={e => handleInputChange(e, setEditingEmpresa)} /></div>
                 <div>

@@ -67,7 +67,7 @@ const getTempoDecorrido = (dataStr) => {
     if (!dataStr) return '-';
     const start = new Date(dataStr);
     const end = new Date();
-    const diffMins = differenceInMinutes(end, start);
+    const diffMins = Math.max(0, differenceInMinutes(end, start));
     const days = Math.floor(diffMins / (24 * 60));
     const hours = Math.floor((diffMins % (24 * 60)) / 60);
     return `${days}d ${hours}h`;
@@ -119,7 +119,10 @@ const ModalFormContent = React.memo(({ formData, setFormData, age, titulares, is
     const cep = e.target.value.replace(/\D/g, '');
     if (cep.length !== 8) { return; }
     try {
-      const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`, { signal: controller.signal });
+      clearTimeout(timeout);
       if (!response.ok) throw new Error('CEP não encontrado');
       const data = await response.json();
       if (data.erro) {
@@ -292,7 +295,7 @@ const ModalFormContent = React.memo(({ formData, setFormData, age, titulares, is
         <div className="flex items-center justify-between mb-4">
             <h4 className="font-semibold">Solicitar Inclusão e Exclusão</h4>
             <Button type="button" onClick={openSolicitacaoDialog} className="bg-[#003580] hover:bg-[#002060] text-white shadow-md hover:shadow-lg transition-all">
-               <Plus className="mr-2 h-4 w-4" /> Solicitar Plano
+               <Plus className="mr-2 h-4 w-4" /> Solicitações
             </Button>
         </div>
 
@@ -703,18 +706,26 @@ const ClientDashboard = () => {
   };
 
   const getLatestSolicitacaoForPlan = (beneficiarioId, tipoPlano) => {
-    const userSolicitacoes = solicitacoes.filter(s => 
-      String(s.beneficiario_id) === String(beneficiarioId) && 
-      String(s.tipo_plano) === String(tipoPlano)
+    const userSolicitacoes = solicitacoes.filter(s =>
+      String(s.beneficiario_id) === String(beneficiarioId) &&
+      String(s.tipo_plano) === String(tipoPlano) &&
+      s.status !== 'CANCELADA'
     );
 
     if (userSolicitacoes.length === 0) return null;
 
-    userSolicitacoes.sort((a, b) => 
+    userSolicitacoes.sort((a, b) =>
       new Date(b.data_solicitacao) - new Date(a.data_solicitacao)
     );
 
     return userSolicitacoes[0];
+  };
+
+  const isPlanAtivo = (beneficiario, type) => {
+    if (!beneficiario[`${type}_ativo`]) return false;
+    const latest = getLatestSolicitacaoForPlan(beneficiario.id, type);
+    if (latest?.tipo_solicitacao === 'EXCLUSAO' && latest?.status === 'CONCLUIDA') return false;
+    return true;
   };
 
   const openSolicitacaoDialog = () => { setSelectedPlans([]); setIsSolicitacaoDialogOpen(true); };
@@ -731,9 +742,10 @@ const ClientDashboard = () => {
   };
 
   const renderPlanSelectionItem = (type, label, Icon, colorClass) => {
-    const isActive = formData[`${type}_ativo`];
     const solicitacao = getLatestSolicitacaoForPlan(editingBeneficiario.id, type);
     const isPendingOrProcessing = solicitacao && ['PENDENTE', 'EM PROCESSAMENTO'].includes(solicitacao.status);
+    const isExcluded = solicitacao?.tipo_solicitacao === 'EXCLUSAO' && solicitacao?.status === 'CONCLUIDA';
+    const isActive = formData[`${type}_ativo`] && !isExcluded;
 
     if (isPendingOrProcessing) {
         return (
@@ -773,14 +785,47 @@ const ClientDashboard = () => {
                     <CheckCircle2 className="h-4 w-4 text-green-600" />
                     <span className="text-sm font-medium text-green-700">Plano Ativo</span>
                  </div>
-                 <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => setIsSolicitacaoDialogOpen(false)} 
-                    className="w-full h-8 text-xs border-green-300 text-green-800 hover:bg-green-100 hover:text-green-900 bg-transparent"
-                 >
-                    Fechar
-                 </Button>
+                 <div className="flex flex-col gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => { setIsSolicitacaoDialogOpen(false); handleSolicitarAlteracao(editingBeneficiario.id, type); }}
+                        className="w-full h-8 text-xs border-blue-300 text-blue-700 hover:bg-blue-50 hover:text-blue-900 bg-transparent"
+                    >
+                        <RotateCcw className="h-3.5 w-3.5 mr-1.5" />Alterar Plano
+                    </Button>
+                    <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => { setIsSolicitacaoDialogOpen(false); setExclusaoData({ beneficiarioId: editingBeneficiario.id, tipoPlano: type, motivo: '', dataExclusao: '' }); setIsExclusaoModalOpen(true); }}
+                        className="w-full h-8 text-xs"
+                    >
+                        <UserMinus className="h-3.5 w-3.5 mr-1.5" />Solicitar Exclusão
+                    </Button>
+                 </div>
+            </div>
+        );
+    }
+
+    if (isExcluded) {
+        return (
+            <div key={type} className="border border-red-200 bg-red-50 rounded-lg p-4 space-y-3 relative">
+                <div className="flex items-center gap-2">
+                    <div className={`p-1.5 rounded-full ${colorClass} bg-opacity-10`}><Icon className={`h-4 w-4 ${colorClass}`} /></div>
+                    <h3 className="font-semibold text-sm text-gray-900">{label}</h3>
+                </div>
+                <div className="flex items-center gap-2">
+                    <UserMinus className="h-4 w-4 text-red-600" />
+                    <span className="text-sm font-medium text-red-700">Plano Excluído</span>
+                </div>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => { setIsSolicitacaoDialogOpen(false); handleSolicitarInclusao(editingBeneficiario.id, [type]); }}
+                    className="w-full h-8 text-xs border-green-300 text-green-700 hover:bg-green-50 hover:text-green-900 bg-transparent"
+                >
+                    <Plus className="h-3.5 w-3.5 mr-1.5" />Solicitar Inclusão
+                </Button>
             </div>
         );
     }
@@ -821,8 +866,7 @@ const ClientDashboard = () => {
                 <div className="flex items-center gap-2"><div className={`p-2 rounded-full ${colorClass} bg-opacity-10`}><Icon className={`h-5 w-5 ${colorClass}`} /></div><div><h4 className="font-bold text-sm flex items-center gap-2">{label}</h4><Badge variant="outline" className="w-fit bg-green-100 text-green-800 border-green-200">Ativo</Badge></div></div>
              </CardHeader>
              <CardContent className="p-4 pt-2">
-                <div className="text-sm text-gray-600 mb-4">Este plano está ativo.</div>
-                <div className="flex flex-col gap-2"><Button variant="outline" size="sm" className="h-8 px-3 text-blue-600 border-blue-600 hover:bg-blue-50 w-full justify-start" onClick={() => handleSolicitarAlteracao(editingBeneficiario.id, type)}><RotateCcw className="h-4 w-4 mr-2" />Alterar Plano</Button><Button variant="destructive" size="sm" className="h-8 px-3 w-full justify-start" onClick={() => { setExclusaoData({ beneficiarioId: editingBeneficiario.id, tipoPlano: type, motivo: '', dataExclusao: '' }); setIsExclusaoModalOpen(true); }}><UserMinus className="h-4 w-4 mr-2" />Solicitar Exclusão</Button></div>
+                <div className="text-sm text-gray-600">Este plano está ativo.</div>
              </CardContent>
           </Card>
         );
@@ -836,12 +880,11 @@ const ClientDashboard = () => {
 
     return (
       <Card className="mb-4 overflow-hidden border-l-4" style={{ borderLeftColor: isRejected ? '#ef4444' : (status === 'CONCLUIDA' ? (isExclusion ? '#ef4444' : '#22c55e') : (status === 'EM PROCESSAMENTO' ? '#3b82f6' : '#eab308')) }}>
-        <CardHeader className="p-4 pb-2"><div className="flex items-center gap-2"><div className={`p-2 rounded-full ${colorClass} bg-opacity-10`}><Icon className={`h-5 w-5 ${colorClass}`} /></div><div><h4 className="font-bold text-sm flex items-center gap-2">{label}{isExclusion && (<Badge variant="destructive" className="ml-1 text-[10px] h-5 px-1">➖ EXCLUSÃO</Badge>)}</h4><div className="flex flex-col mt-1"><Badge variant="outline" className={`w-fit ${getStatusColor(status)}`}>{status === 'PENDENTE' && (isExclusion ? 'Exclusão Pendente' : 'Inclusão Pendente')}{status === 'EM PROCESSAMENTO' && (isExclusion ? 'Exclusão em Andamento' : 'Inclusão em Andamento')}{status === 'CONCLUIDA' && (isExclusion ? 'Exclusão Concluída' : 'Inclusão Concluída')}{status === 'REJEITADA' && 'Solicitação Rejeitada'}</Badge></div></div></div></CardHeader>
+        <CardHeader className="p-4 pb-2"><div className="flex items-center gap-2"><div className={`p-2 rounded-full ${colorClass} bg-opacity-10`}><Icon className={`h-5 w-5 ${colorClass}`} /></div><div><h4 className="font-bold text-sm flex items-center gap-2">{label}{isExclusion && (<Badge variant="destructive" className="ml-1 text-[10px] h-5 px-1">Exclusão</Badge>)}</h4><div className="flex flex-col mt-1"><Badge variant="outline" className={`w-fit ${getStatusColor(status)}`}>{status === 'PENDENTE' && (isExclusion ? 'Exclusão Pendente' : 'Inclusão Pendente')}{status === 'EM PROCESSAMENTO' && (isExclusion ? 'Exclusão em Andamento' : 'Inclusão em Andamento')}{status === 'CONCLUIDA' && (isExclusion ? 'Exclusão Concluída' : 'Inclusão Concluída')}{status === 'REJEITADA' && 'Solicitação Rejeitada'}</Badge></div></div></div></CardHeader>
         <CardContent className="p-4 pt-2">
           <div className="grid grid-cols-2 gap-y-2 text-sm text-gray-600 mb-3"><div className="flex items-center gap-2" title="Data Solicitação"><Calendar className="h-4 w-4" /><span>{formatDate(solicitacao.data_solicitacao)}</span></div><div className="flex items-center gap-2" title="Tempo Decorrido"><Timer className="h-4 w-4" /><span>{getTempoDecorrido(solicitacao.data_solicitacao)}</span></div>{solicitacao.data_aprovacao && !isExclusion && (<div className="flex items-center gap-2 col-span-2" title="Data Aprovação"><CheckCircle2 className="h-4 w-4 text-green-600" /><span>Aprovado: {formatDate(solicitacao.data_aprovacao)}</span></div>)}</div>
           {isExclusion && status === 'CONCLUIDA' && (<div className="mt-3 p-3 bg-red-50 rounded border border-red-200"><p className="text-sm font-semibold text-red-800 flex items-center gap-2"><UserMinus className="h-4 w-4" /> Plano Excluído</p><p className="text-xs text-red-700 mt-1">Data: {formatDate(solicitacao.data_conclusao)}</p>{solicitacao.dados_exclusao?.motivo && (<p className="text-xs text-red-700">Motivo: {solicitacao.dados_exclusao.motivo}</p>)}</div>)}
           {isRejected && (<div className="space-y-3"><Alert variant="destructive" className="py-2"><AlertCircle className="h-4 w-4" /><AlertDescription className="text-xs ml-2">{solicitacao.motivo_rejeicao || 'Motivo não informado.'}</AlertDescription></Alert></div>)}
-          {formData[`${type}_ativo`] === true && status === 'CONCLUIDA' && !isExclusion && (<div className="flex flex-col gap-2 mt-4 pt-3 border-t"><Button variant="outline" size="sm" className="h-8 px-3 text-blue-600 border-blue-600 hover:bg-blue-50 w-full justify-start" onClick={() => handleSolicitarAlteracao(editingBeneficiario.id, type)}><RotateCcw className="h-4 w-4 mr-2" />Alterar Plano</Button><Button variant="destructive" size="sm" className="h-8 px-3 w-full justify-start" onClick={() => { setExclusaoData({ beneficiarioId: editingBeneficiario.id, tipoPlano: type, motivo: '', dataExclusao: '' }); setIsExclusaoModalOpen(true); }}><UserMinus className="h-4 w-4 mr-2" />Solicitar Exclusão</Button></div>)}
         </CardContent>
       </Card>
     );
@@ -881,8 +924,6 @@ const ClientDashboard = () => {
       <Helmet><title>Beneficiários - {empresa?.nome_fantasia || 'Cliente'}</title></Helmet>
       <DashboardLayout>
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
-          {solicitacoesInclusaoConcluidas.length > 0 && showInclusaoAlert && (<Alert className="mb-4 bg-blue-50 border-blue-200 relative pr-10"><AlertTitle className="text-blue-800">Solicitações de Inclusão Concluídas!</AlertTitle><AlertDescription className="text-blue-700">Boas notícias! Algumas solicitações de planos foram aprovadas e os planos já estão ativos.</AlertDescription><button onClick={() => setShowInclusaoAlert(false)} className="absolute top-2 right-2 text-blue-800 hover:text-blue-900"><X className="h-4 w-4" /></button></Alert>)}
-          {solicitacoesExclusaoConcluidas.length > 0 && showExclusaoAlert && (<Alert className="mb-4 bg-red-50 border-red-200 relative pr-10"><AlertTitle className="text-red-800">Solicitações de Exclusão Concluídas!</AlertTitle><AlertDescription className="text-red-700">Alguns planos foram excluídos com sucesso.</AlertDescription><button onClick={() => setShowExclusaoAlert(false)} className="absolute top-2 right-2 text-red-800 hover:text-red-900"><X className="h-4 w-4" /></button></Alert>)}
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
              {isLoading ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[108px]" />) : (
@@ -949,10 +990,10 @@ const ClientDashboard = () => {
                                             <TableCell>{b.parentesco}</TableCell>
                                             <TableCell>
                                                 <div className="flex gap-2">
-                                                    {b.saude_ativo && <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Saúde</Badge>}
-                                                    {b.vida_ativo && <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Vida</Badge>}
-                                                    {b.odonto_ativo && <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">Odonto</Badge>}
-                                                    {!b.saude_ativo && !b.vida_ativo && !b.odonto_ativo && <span className="text-gray-400 text-xs">-</span>}
+                                                    {isPlanAtivo(b, 'saude') && <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Saúde</Badge>}
+                                                    {isPlanAtivo(b, 'vida') && <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Vida</Badge>}
+                                                    {isPlanAtivo(b, 'odonto') && <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">Odonto</Badge>}
+                                                    {!isPlanAtivo(b, 'saude') && !isPlanAtivo(b, 'vida') && !isPlanAtivo(b, 'odonto') && <span className="text-gray-400 text-xs">-</span>}
                                                 </div>
                                             </TableCell>
                                             <TableCell><Badge className={getBadgeClass(b.situacao)} variant="secondary">{b.situacao}</Badge></TableCell>

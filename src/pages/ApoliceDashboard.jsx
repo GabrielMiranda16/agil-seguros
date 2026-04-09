@@ -57,9 +57,10 @@ const ApoliceDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [apolice, setApolice] = useState(null);
 
-  // Tabs de Beneficiários/Solicitações/Coparticipação apenas para SVD
+  // Tabs de Beneficiários/Solicitações/Coparticipação apenas para SVD (só ADM)
   const isSVD = apolice?.segmento === 'SAUDE_VIDA_ODONTO';
-  const showTabs = (isAdmin || isCliente) && isSVD;
+  const showTabs = isAdmin && isSVD;
+  const showGestaoButton = isCliente && isSVD;
   const [beneficiarios, setBeneficiarios] = useState([]);
   const [solicitacoes, setSolicitacoes] = useState([]);
   const [loadingBen, setLoadingBen] = useState(false);
@@ -354,6 +355,14 @@ const ApoliceDashboard = () => {
                       )}
                     </CardContent>
                   </Card>
+
+                  {showGestaoButton && (
+                    <div className="flex justify-end pt-2">
+                      <Button className="bg-[#003580] hover:bg-[#002060] text-white" onClick={() => navigate(`/cliente/${apolice.empresa_id}`)}>
+                        <Users className="mr-2 h-4 w-4" /> Acessar Gestão <ChevronRight className="ml-1 h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </TabsContent>
 
@@ -441,15 +450,6 @@ const ApoliceDashboard = () => {
                               <Badge className={STATUS_SOL_COLORS[s.status] || 'bg-gray-100 text-gray-600'}>{s.status}</Badge>
                             </div>
                           ))}
-                          {solicitacoes.length > 10 && (
-                            <p className="text-xs text-gray-400 text-center pt-1">+{solicitacoes.length - 10} outras</p>
-                          )}
-                          <Button size="sm" variant="outline" className="w-full mt-2" onClick={() => {
-                            if (isAdmin) { setSelectedCompanyId(Number(apolice.empresa_id)); navigate('/solicitacoes'); }
-                            else navigate(`/cliente/${apolice.empresa_id}`);
-                          }}>
-                            Ver {isAdmin && 'todas e'} gerenciar <ChevronRight className="ml-1 h-3.5 w-3.5" />
-                          </Button>
                         </div>
                       )}
                     </CardContent>

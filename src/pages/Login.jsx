@@ -80,7 +80,7 @@ const LoginPage = () => {
       if (emailResult.ok) {
         toast({ title: 'E-mail enviado!', description: 'Verifique sua caixa de entrada com a senha temporária.' });
       } else {
-        toast({ title: 'Senha redefinida', description: `Senha temporária: ${tempPassword} | Erro: ${emailResult.error}`, duration: 20000 });
+        toast({ variant: 'destructive', title: 'Erro ao enviar e-mail', description: `Senha redefinida mas o e-mail não pôde ser enviado. Entre em contato com o suporte.`, duration: 10000 });
       }
       setIsForgotOpen(false);
       setForgotEmail('');

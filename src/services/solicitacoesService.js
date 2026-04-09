@@ -69,10 +69,9 @@ export const solicitacoesService = {
 
   async updateSolicitacao(id, updateData) {
     try {
-      const cleanedData = cleanSolicitacaoData(updateData);
       const { data, error } = await supabase
         .from('solicitacoes')
-        .update(cleanedData)
+        .update(updateData)
         .eq('id', id)
         .select()
         .single();
@@ -81,7 +80,7 @@ export const solicitacoesService = {
       return data;
     } catch (error) {
       console.error('Erro ao atualizar solicitação:', error);
-      throw new Error('Não foi possível atualizar a solicitação.');
+      throw new Error(error?.message || 'Não foi possível atualizar a solicitação.');
     }
   },
 
@@ -111,7 +110,7 @@ export const solicitacoesService = {
       return true;
     } catch (error) {
       console.error('Cancel solicitacao error:', error);
-      throw new Error('Não foi possível cancelar a solicitação.');
+      throw new Error(error?.message || 'Não foi possível cancelar a solicitação.');
     }
   },
 

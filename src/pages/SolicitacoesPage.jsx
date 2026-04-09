@@ -302,6 +302,24 @@ const SolicitacoesPage = () => {
 
       if (editingSolicitacao) {
         await solicitacoesService.updateSolicitacao(editingSolicitacao.id, payload);
+
+        // Se concluindo exclusão, desativar o plano no beneficiário
+        if (formData.status === 'CONCLUIDA' && formData.tipo_solicitacao === 'EXCLUSAO' && formData.tipo_plano) {
+          const planoField = `${formData.tipo_plano}_ativo`;
+          await beneficiariosService.updateBeneficiario(beneficiario.id, {
+            [planoField]: false,
+            [`${formData.tipo_plano}_data_exclusao`]: new Date().toISOString().split('T')[0],
+          });
+          setBeneficiarios(prev => prev.map(b => b.id === beneficiario.id ? { ...b, [planoField]: false } : b));
+        }
+
+        // Se concluindo inclusão, ativar o plano no beneficiário
+        if (formData.status === 'CONCLUIDA' && formData.tipo_solicitacao === 'INCLUSAO' && formData.tipo_plano) {
+          const planoField = `${formData.tipo_plano}_ativo`;
+          await beneficiariosService.updateBeneficiario(beneficiario.id, { [planoField]: true });
+          setBeneficiarios(prev => prev.map(b => b.id === beneficiario.id ? { ...b, [planoField]: true } : b));
+        }
+
         setSolicitacoes(prev => prev.map(s => s.id === editingSolicitacao.id ? { ...s, ...payload } : s));
         toast({ title: 'Sucesso', description: 'Solicitação atualizada com sucesso.' });
       } else {
@@ -338,10 +356,10 @@ const SolicitacoesPage = () => {
       });
     } catch (error) {
       console.error("Error accepting solicitacao:", error);
-      toast({ 
-        variant: 'destructive', 
-        title: 'Erro', 
-        description: 'Erro ao aceitar solicitação.' 
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao aceitar solicitação',
+        description: error?.message || 'Erro desconhecido.'
       });
     }
   };
@@ -402,39 +420,56 @@ const SolicitacoesPage = () => {
       const { solicitacao, beneficiario } = editingBeneficiarioData;
       const updateFields = {};
 
+      const isExclusao = solicitacao.tipo_solicitacao === 'EXCLUSAO';
+
       // Handle based on plan type to only update relevant fields
       if (solicitacao.tipo_plano === 'saude') {
-        updateFields.saude_ativo = true;
-        updateFields.saude_plano_nome = beneficiarioFormData.saude_plano_nome;
-        updateFields.saude_numero_carteirinha = beneficiarioFormData.saude_numero_carteirinha;
-        updateFields.saude_link_carteirinha = beneficiarioFormData.saude_link_carteirinha;
-        updateFields.saude_codigo_empresa = beneficiarioFormData.saude_codigo_empresa;
-        updateFields.saude_acomodacao = beneficiarioFormData.saude_acomodacao;
-        updateFields.saude_data_inclusao = beneficiarioFormData.saude_data_inclusao || null;
-        updateFields.saude_data_exclusao = beneficiarioFormData.saude_data_exclusao || null;
-        updateFields.saude_produto = beneficiarioFormData.saude_produto;
-        updateFields.saude_valor_fatura = beneficiarioFormData.saude_valor_fatura ? parseFloat(beneficiarioFormData.saude_valor_fatura) : 0;
-        updateFields.saude_coparticipacao = beneficiarioFormData.saude_coparticipacao;
+        if (isExclusao) {
+          updateFields.saude_ativo = false;
+          updateFields.saude_data_exclusao = beneficiarioFormData.saude_data_exclusao || new Date().toISOString().split('T')[0];
+        } else {
+          updateFields.saude_ativo = true;
+          updateFields.saude_plano_nome = beneficiarioFormData.saude_plano_nome;
+          updateFields.saude_numero_carteirinha = beneficiarioFormData.saude_numero_carteirinha;
+          updateFields.saude_link_carteirinha = beneficiarioFormData.saude_link_carteirinha;
+          updateFields.saude_codigo_empresa = beneficiarioFormData.saude_codigo_empresa;
+          updateFields.saude_acomodacao = beneficiarioFormData.saude_acomodacao;
+          updateFields.saude_data_inclusao = beneficiarioFormData.saude_data_inclusao || null;
+          updateFields.saude_data_exclusao = beneficiarioFormData.saude_data_exclusao || null;
+          updateFields.saude_produto = beneficiarioFormData.saude_produto;
+          updateFields.saude_valor_fatura = beneficiarioFormData.saude_valor_fatura ? parseFloat(beneficiarioFormData.saude_valor_fatura) : 0;
+          updateFields.saude_coparticipacao = beneficiarioFormData.saude_coparticipacao;
+        }
       } else if (solicitacao.tipo_plano === 'vida') {
-        updateFields.vida_ativo = true;
-        updateFields.vida_plano_nome = beneficiarioFormData.vida_plano_nome;
-        updateFields.vida_numero_carteirinha = beneficiarioFormData.vida_numero_carteirinha;
-        updateFields.vida_link_carteirinha = beneficiarioFormData.vida_link_carteirinha;
-        updateFields.vida_codigo_empresa = beneficiarioFormData.vida_codigo_empresa;
-        updateFields.vida_data_inclusao = beneficiarioFormData.vida_data_inclusao || null;
-        updateFields.vida_data_exclusao = beneficiarioFormData.vida_data_exclusao || null;
-        updateFields.vida_produto = beneficiarioFormData.vida_produto;
-        updateFields.vida_valor_fatura = beneficiarioFormData.vida_valor_fatura ? parseFloat(beneficiarioFormData.vida_valor_fatura) : 0;
+        if (isExclusao) {
+          updateFields.vida_ativo = false;
+          updateFields.vida_data_exclusao = beneficiarioFormData.vida_data_exclusao || new Date().toISOString().split('T')[0];
+        } else {
+          updateFields.vida_ativo = true;
+          updateFields.vida_plano_nome = beneficiarioFormData.vida_plano_nome;
+          updateFields.vida_numero_carteirinha = beneficiarioFormData.vida_numero_carteirinha;
+          updateFields.vida_link_carteirinha = beneficiarioFormData.vida_link_carteirinha;
+          updateFields.vida_codigo_empresa = beneficiarioFormData.vida_codigo_empresa;
+          updateFields.vida_data_inclusao = beneficiarioFormData.vida_data_inclusao || null;
+          updateFields.vida_data_exclusao = beneficiarioFormData.vida_data_exclusao || null;
+          updateFields.vida_produto = beneficiarioFormData.vida_produto;
+          updateFields.vida_valor_fatura = beneficiarioFormData.vida_valor_fatura ? parseFloat(beneficiarioFormData.vida_valor_fatura) : 0;
+        }
       } else if (solicitacao.tipo_plano === 'odonto') {
-        updateFields.odonto_ativo = true;
-        updateFields.odonto_plano_nome = beneficiarioFormData.odonto_plano_nome;
-        updateFields.odonto_numero_carteirinha = beneficiarioFormData.odonto_numero_carteirinha;
-        updateFields.odonto_link_carteirinha = beneficiarioFormData.odonto_link_carteirinha;
-        updateFields.odonto_codigo_empresa = beneficiarioFormData.odonto_codigo_empresa;
-        updateFields.odonto_data_inclusao = beneficiarioFormData.odonto_data_inclusao || null;
-        updateFields.odonto_data_exclusao = beneficiarioFormData.odonto_data_exclusao || null;
-        updateFields.odonto_produto = beneficiarioFormData.odonto_produto;
-        updateFields.odonto_valor_fatura = beneficiarioFormData.odonto_valor_fatura ? parseFloat(beneficiarioFormData.odonto_valor_fatura) : 0;
+        if (isExclusao) {
+          updateFields.odonto_ativo = false;
+          updateFields.odonto_data_exclusao = beneficiarioFormData.odonto_data_exclusao || new Date().toISOString().split('T')[0];
+        } else {
+          updateFields.odonto_ativo = true;
+          updateFields.odonto_plano_nome = beneficiarioFormData.odonto_plano_nome;
+          updateFields.odonto_numero_carteirinha = beneficiarioFormData.odonto_numero_carteirinha;
+          updateFields.odonto_link_carteirinha = beneficiarioFormData.odonto_link_carteirinha;
+          updateFields.odonto_codigo_empresa = beneficiarioFormData.odonto_codigo_empresa;
+          updateFields.odonto_data_inclusao = beneficiarioFormData.odonto_data_inclusao || null;
+          updateFields.odonto_data_exclusao = beneficiarioFormData.odonto_data_exclusao || null;
+          updateFields.odonto_produto = beneficiarioFormData.odonto_produto;
+          updateFields.odonto_valor_fatura = beneficiarioFormData.odonto_valor_fatura ? parseFloat(beneficiarioFormData.odonto_valor_fatura) : 0;
+        }
       }
 
       // 1. Update Beneficiario with specific fields
@@ -465,10 +500,10 @@ const SolicitacoesPage = () => {
       setIsEditBeneficiarioModalOpen(false);
     } catch (error) {
       console.error("Error saving beneficiary data:", error);
-      toast({ 
-        variant: 'destructive', 
-        title: 'Erro', 
-        description: 'Erro ao salvar dados e concluir solicitação.' 
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao concluir solicitação',
+        description: error?.message || 'Erro desconhecido.'
       });
     } finally {
       setIsSubmitting(false);
@@ -481,7 +516,7 @@ const SolicitacoesPage = () => {
       setSolicitacoes(prev => prev.map(s => s.id === id ? { ...s, status: 'CANCELADA' } : s));
       toast({ title: 'Sucesso', description: 'Solicitação cancelada.' });
     } catch (error) {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Erro ao cancelar solicitação.' });
+      toast({ variant: 'destructive', title: 'Erro ao cancelar', description: error?.message || 'Erro desconhecido.' });
     }
   };
 

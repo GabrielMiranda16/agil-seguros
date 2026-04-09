@@ -20,6 +20,7 @@ export const cleanEmpresaData = (data) => {
     endereco_completo: text(data.endereco_completo),
     email_cliente: text(data.email_cliente),
     ativo: data.ativo !== undefined ? Boolean(data.ativo) : true,
+    ...(data.data_nascimento !== undefined && { data_nascimento: data.data_nascimento || null }),
   };
 };
 

@@ -15,6 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { motion } from 'framer-motion';
 import { LogOut, HeartPulse, Car, Plane, Home, PawPrint, Building2, Package, Monitor, Loader2, User, Lock, UserCog } from 'lucide-react';
 import { applyCpfMask, applyCepMask } from '@/lib/masks';
+import { validatePasswordStrength } from '@/lib/userValidator';
 import bcrypt from 'bcryptjs';
 
 const SEGMENTO_CONFIG = {
@@ -101,7 +102,8 @@ const SelectSegmento = () => {
     const isOldCorrect = isBcrypt ? await bcrypt.compare(oldPassword, stored) : oldPassword === stored;
 
     if (!isOldCorrect) return toast({ variant: 'destructive', title: 'Senha antiga incorreta.' });
-    if (newPassword.length < 4) return toast({ variant: 'destructive', title: 'A nova senha deve ter no mínimo 4 caracteres.' });
+    const pwErrors = validatePasswordStrength(newPassword);
+    if (pwErrors.length > 0) return toast({ variant: 'destructive', title: 'Senha fraca', description: pwErrors[0] });
     if (newPassword !== confirmPassword) return toast({ variant: 'destructive', title: 'As senhas não conferem.' });
 
     setIsSavingPass(true);
@@ -141,7 +143,10 @@ const SelectSegmento = () => {
     if (nums.length !== 8) return;
     setIsCepLoading(true);
     try {
-      const res = await fetch(`https://viacep.com.br/ws/${nums}/json/`);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(`https://viacep.com.br/ws/${nums}/json/`, { signal: controller.signal });
+      clearTimeout(timeout);
       const data = await res.json();
       if (!data.erro) {
         setDadosForm(prev => ({
@@ -177,9 +182,10 @@ const SelectSegmento = () => {
       const { error } = await supabaseClient.from('empresas').update({
         razao_social: dadosForm.razao_social,
         endereco_completo,
+        ...(isPF && { data_nascimento: dadosForm.data_nascimento || null }),
       }).eq('id', empresa.id);
       if (error) throw error;
-      setEmpresa(prev => ({ ...prev, razao_social: dadosForm.razao_social, endereco_completo }));
+      setEmpresa(prev => ({ ...prev, razao_social: dadosForm.razao_social, endereco_completo, data_nascimento: dadosForm.data_nascimento }));
       toast({ title: 'Dados atualizados com sucesso.' });
       setIsDadosModalOpen(false);
     } catch (err) {
@@ -348,6 +354,12 @@ const SelectSegmento = () => {
               <Label>{isPF ? 'CPF' : 'CNPJ'}</Label>
               <Input value={dadosForm.cnpj || ''} readOnly className="bg-gray-50 text-gray-500" />
             </div>
+            {isPF && (
+              <div>
+                <Label>Data de Nascimento</Label>
+                <Input type="date" value={dadosForm.data_nascimento || ''} onChange={e => setDadosForm(p => ({ ...p, data_nascimento: e.target.value }))} />
+              </div>
+            )}
             {/* Endereço atual */}
             {dadosForm.endereco_completo && (
               <div className="p-3 bg-gray-50 rounded-md border text-sm text-gray-600">
