@@ -164,7 +164,7 @@ const SelectSegmento = () => {
     setIsSavingDados(true);
     try {
       const parts = [
-        dadosForm.rua,
+        dadosForm.rua || '',
         dadosForm.numero && `nº ${dadosForm.numero}`,
         dadosForm.complemento,
         dadosForm.bairro,
@@ -174,16 +174,17 @@ const SelectSegmento = () => {
         dadosForm.cep_busca && `CEP ${dadosForm.cep_busca}`,
       ].filter(Boolean);
       const endereco_completo = parts.length > 0 ? parts.join(', ') : (dadosForm.endereco_completo || '');
-      await empresasService.updateEmpresa(empresa.id, {
+      const { error } = await supabaseClient.from('empresas').update({
         razao_social: dadosForm.razao_social,
         data_nascimento: dadosForm.data_nascimento || null,
         endereco_completo,
-      });
+      }).eq('id', empresa.id);
+      if (error) throw error;
       setEmpresa(prev => ({ ...prev, razao_social: dadosForm.razao_social, endereco_completo }));
       toast({ title: 'Dados atualizados com sucesso.' });
       setIsDadosModalOpen(false);
-    } catch {
-      toast({ variant: 'destructive', title: 'Erro ao salvar dados.' });
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Erro ao salvar dados', description: err?.message || JSON.stringify(err) });
     } finally {
       setIsSavingDados(false);
     }
@@ -354,9 +355,16 @@ const SelectSegmento = () => {
                 <Input type="date" value={dadosForm.data_nascimento || ''} onChange={e => setDadosForm(p => ({ ...p, data_nascimento: e.target.value }))} />
               </div>
             )}
-            {/* Endereço separado */}
+            {/* Endereço atual */}
+            {dadosForm.endereco_completo && (
+              <div className="p-3 bg-gray-50 rounded-md border text-sm text-gray-600">
+                <p className="text-xs font-medium text-gray-400 mb-1">Endereço atual</p>
+                {dadosForm.endereco_completo}
+              </div>
+            )}
+            {/* Atualizar endereço via CEP */}
             <div>
-              <Label>CEP</Label>
+              <Label>Atualizar Endereço via CEP</Label>
               <div className="flex gap-2">
                 <Input
                   placeholder="00000-000"
