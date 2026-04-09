@@ -122,7 +122,9 @@ const ApoliceDashboard = () => {
     );
   }
 
-  const status = apolicesService.getStatusApolice(apolice.vigencia_fim);
+  const isSVDSemVigencia = isSVD && !apolice.vigencia_fim;
+  const statusRaw = apolicesService.getStatusApolice(apolice.vigencia_fim);
+  const status = isSVDSemVigencia ? { color: 'green', dias: undefined } : statusRaw;
   const statusCfg = STATUS_CONFIG[status.color];
   const StatusIcon = statusCfg.icon;
   const SegIcon = SEGMENTO_ICONS[apolice.segmento] || FileText;
@@ -162,7 +164,7 @@ const ApoliceDashboard = () => {
 
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <Tabs defaultValue="dados" className="space-y-4">
-              <TabsList className={`bg-white/10 ${showTabs ? 'grid grid-cols-4' : 'grid grid-cols-1'} w-full`}>
+              <TabsList className={`bg-white/10 ${showTabs ? 'grid grid-cols-2 sm:grid-cols-4' : 'grid grid-cols-1'} w-full`}>
                 <TabsTrigger value="dados" className="text-white/80 data-[state=active]:bg-white data-[state=active]:text-[#003580]">
                   <FileText className="h-4 w-4 mr-1.5" /> Apólice
                 </TabsTrigger>
@@ -227,21 +229,29 @@ const ApoliceDashboard = () => {
                     </CardContent>
                   </Card>
 
-                  {(apolice.vigencia_inicio || apolice.vigencia_fim) && (
+                  {(apolice.vigencia_inicio || apolice.vigencia_fim || isSVDSemVigencia) && (
                     <Card>
-                      <CardHeader><CardTitle className="flex items-center gap-2 text-base"><CalendarDays className="h-4 w-4" /> Vigência</CardTitle></CardHeader>
+                      <CardHeader><CardTitle className="flex items-center gap-2 text-base"><CalendarDays className="h-4 w-4" /> {isSVDSemVigencia ? 'Data de Inclusão' : 'Vigência'}</CardTitle></CardHeader>
                       <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div>
-                          <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Início</p>
-                          <p className="font-semibold text-gray-800">{formatDate(apolice.vigencia_inicio)}</p>
+                          <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">{isSVDSemVigencia ? 'Data de Inclusão do Plano' : 'Início'}</p>
+                          <p className="font-semibold text-gray-800">{formatDate(apolice.vigencia_inicio || (isSVDSemVigencia ? apolice.created_at?.split('T')[0] : null))}</p>
                         </div>
-                        <div>
-                          <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Término</p>
-                          <p className={`font-semibold ${status.color === 'red' ? 'text-red-600' : status.color === 'yellow' ? 'text-yellow-600' : 'text-gray-800'}`}>
-                            {formatDate(apolice.vigencia_fim)}
-                          </p>
-                        </div>
-                        {status.dias !== undefined && (
+                        {!isSVDSemVigencia && (
+                          <div>
+                            <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Término</p>
+                            <p className={`font-semibold ${status.color === 'red' ? 'text-red-600' : status.color === 'yellow' ? 'text-yellow-600' : 'text-gray-800'}`}>
+                              {formatDate(apolice.vigencia_fim)}
+                            </p>
+                          </div>
+                        )}
+                        {isSVDSemVigencia && (
+                          <div>
+                            <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Término</p>
+                            <p className="font-semibold text-green-600">Plano contínuo</p>
+                          </div>
+                        )}
+                        {status.dias !== undefined && !isSVDSemVigencia && (
                           <div className="sm:col-span-2">
                             <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Dias restantes</p>
                             <p className={`font-semibold ${status.color === 'red' ? 'text-red-600' : status.color === 'yellow' ? 'text-yellow-600' : 'text-green-600'}`}>
@@ -278,7 +288,7 @@ const ApoliceDashboard = () => {
                         {apolice.dados_adicionais.veiculos.map((v, i) => (
                           <div key={i} className="p-3 bg-gray-50 rounded-lg">
                             <p className="font-semibold text-gray-800 text-sm">{v.placa || `Veículo ${i+1}`}</p>
-                            <div className="grid grid-cols-2 gap-x-4 mt-1 text-xs text-gray-500">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 mt-1 text-xs text-gray-500">
                               {v.marca && <span>Marca: {v.marca}</span>}
                               {v.modelo && <span>Modelo: {v.modelo}</span>}
                               {v.cor && <span>Cor: {v.cor}</span>}
@@ -320,7 +330,7 @@ const ApoliceDashboard = () => {
                   {apolice.dados_adicionais && apolice.segmento === 'PET_SAUDE' && apolice.dados_adicionais.nome_pet && (
                     <Card>
                       <CardHeader><CardTitle className="flex items-center gap-2 text-base"><PawPrint className="h-4 w-4" /> Dados do Pet</CardTitle></CardHeader>
-                      <CardContent className="grid grid-cols-2 gap-4 text-sm">
+                      <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                         <div><p className="text-xs text-gray-400 uppercase">Nome</p><p className="font-semibold text-gray-800">{apolice.dados_adicionais.nome_pet}</p></div>
                         {apolice.dados_adicionais.especie && <div><p className="text-xs text-gray-400 uppercase">Espécie</p><p className="font-semibold text-gray-800">{apolice.dados_adicionais.especie}</p></div>}
                         {apolice.dados_adicionais.raca && <div><p className="text-xs text-gray-400 uppercase">Raça</p><p className="font-semibold text-gray-800">{apolice.dados_adicionais.raca}</p></div>}
@@ -332,7 +342,7 @@ const ApoliceDashboard = () => {
                   {apolice.dados_adicionais && apolice.segmento === 'EQUIPAMENTOS' && (apolice.dados_adicionais.marca || apolice.dados_adicionais.tipo_equipamento) && (
                     <Card>
                       <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Monitor className="h-4 w-4" /> Equipamento</CardTitle></CardHeader>
-                      <CardContent className="grid grid-cols-2 gap-4 text-sm">
+                      <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                         {apolice.dados_adicionais.tipo_equipamento && <div><p className="text-xs text-gray-400 uppercase">Tipo</p><p className="font-semibold text-gray-800">{apolice.dados_adicionais.tipo_equipamento}</p></div>}
                         {apolice.dados_adicionais.marca && <div><p className="text-xs text-gray-400 uppercase">Marca</p><p className="font-semibold text-gray-800">{apolice.dados_adicionais.marca}</p></div>}
                         {apolice.dados_adicionais.modelo && <div><p className="text-xs text-gray-400 uppercase">Modelo</p><p className="font-semibold text-gray-800">{apolice.dados_adicionais.modelo}</p></div>}
@@ -343,18 +353,46 @@ const ApoliceDashboard = () => {
                     </Card>
                   )}
 
-                  <Card>
-                    <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Download className="h-4 w-4" /> Contrato</CardTitle></CardHeader>
-                    <CardContent>
-                      {apolice.contrato_url ? (
-                        <a href={apolice.contrato_url} target="_blank" rel="noopener noreferrer">
-                          <Button className="w-full sm:w-auto"><Download className="mr-2 h-4 w-4" />Baixar Contrato (PDF)</Button>
-                        </a>
-                      ) : (
-                        <p className="text-sm text-gray-400">Nenhum contrato disponível. Entre em contato com o administrador.</p>
-                      )}
-                    </CardContent>
-                  </Card>
+                  {isSVD ? (
+                    <Card>
+                      <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Download className="h-4 w-4" /> Contratos</CardTitle></CardHeader>
+                      <CardContent className="space-y-3">
+                        {[
+                          { label: 'Saúde', numKey: 'numero_saude', segKey: 'seguradora_saude', urlKey: 'contrato_saude_url' },
+                          { label: 'Vida',  numKey: 'numero_vida',  segKey: 'seguradora_vida',  urlKey: 'contrato_vida_url'  },
+                          { label: 'Odonto',numKey: 'numero_odonto',segKey: 'seguradora_odonto',urlKey: 'contrato_odonto_url'},
+                        ].map(({ label, numKey, segKey, urlKey }) => (
+                          <div key={label} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                            <div>
+                              <p className="text-sm font-semibold text-gray-800">{label}</p>
+                              {apolice.dados_adicionais?.[segKey] && <p className="text-xs text-gray-500">{apolice.dados_adicionais[segKey]}</p>}
+                              {apolice.dados_adicionais?.[numKey] && <p className="text-xs text-gray-400">Nº {apolice.dados_adicionais[numKey]}</p>}
+                            </div>
+                            {apolice.dados_adicionais?.[urlKey] ? (
+                              <a href={apolice.dados_adicionais[urlKey]} target="_blank" rel="noopener noreferrer">
+                                <Button size="sm" variant="outline"><Download className="mr-1.5 h-3.5 w-3.5" />PDF</Button>
+                              </a>
+                            ) : (
+                              <span className="text-xs text-gray-400">Sem contrato</span>
+                            )}
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <Card>
+                      <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Download className="h-4 w-4" /> Contrato</CardTitle></CardHeader>
+                      <CardContent>
+                        {apolice.contrato_url ? (
+                          <a href={apolice.contrato_url} target="_blank" rel="noopener noreferrer">
+                            <Button className="w-full sm:w-auto"><Download className="mr-2 h-4 w-4" />Baixar Contrato (PDF)</Button>
+                          </a>
+                        ) : (
+                          <p className="text-sm text-gray-400">Nenhum contrato disponível. Entre em contato com o administrador.</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
 
                   {showGestaoButton && (
                     <div className="flex justify-end pt-2">

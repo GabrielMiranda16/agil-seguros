@@ -169,13 +169,13 @@ const DashboardLayout = ({ children }) => {
     <div className="min-h-screen flex flex-col bg-soft-gradient">
       <header className="z-40" style={{ background: 'transparent' }}>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-24">
+          <div className="flex items-center justify-between h-16 sm:h-24">
             <div className="flex items-center space-x-4">
               <Link to={getHomeLink()}>
                 <img
                   src="https://storage.googleapis.com/hostinger-horizons-assets-prod/bcb47250-76a3-434c-9312-56a9dba14a6f/247eb5219c397bb2ed2bcac42f39a442.png"
                   alt="Ágil Seguros"
-                  className="h-24 w-auto object-contain"
+                  className="h-14 sm:h-24 w-auto object-contain"
                 />
               </Link>
               {currentEmpresa && (

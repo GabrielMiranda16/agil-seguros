@@ -13,7 +13,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { motion } from 'framer-motion';
-import { LogOut, HeartPulse, Car, Plane, Home, PawPrint, Building2, Package, Monitor, Loader2, User, Lock, UserCog } from 'lucide-react';
+import { LogOut, HeartPulse, Car, Plane, Home, PawPrint, Building2, Package, Monitor, Loader2, User, Lock, UserCog, Eye, EyeOff } from 'lucide-react';
 import { applyCpfMask, applyCepMask } from '@/lib/masks';
 import { validatePasswordStrength } from '@/lib/userValidator';
 import bcrypt from 'bcryptjs';
@@ -47,6 +47,9 @@ const SelectSegmento = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSavingPass, setIsSavingPass] = useState(false);
+  const [showOldPass, setShowOldPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
 
   // Modal dados pessoais
   const [isDadosModalOpen, setIsDadosModalOpen] = useState(false);
@@ -274,7 +277,7 @@ const SelectSegmento = () => {
             <motion.div
               initial="hidden" animate="visible"
               variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
-              className="grid grid-cols-2 md:grid-cols-4 gap-4"
+              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4"
             >
               {segmentosDisponiveis.map((seg) => {
                 const config = SEGMENTO_CONFIG[seg];
@@ -307,13 +310,13 @@ const SelectSegmento = () => {
 
       {/* Modal Alterar Senha */}
       <Dialog open={isPasswordModalOpen} onOpenChange={setIsPasswordModalOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="w-[95vw] sm:max-w-md">
           <DialogHeader><DialogTitle>Alterar Senha</DialogTitle></DialogHeader>
           <form onSubmit={handleChangePassword} className="space-y-4 py-2">
-            <div><Label>Senha atual</Label><Input type="password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} /></div>
+            <div><Label>Senha atual</Label><div className="relative mt-1"><Input type={showOldPass ? 'text' : 'password'} value={oldPassword} onChange={e => setOldPassword(e.target.value)} className="pr-10" /><button type="button" onClick={() => setShowOldPass(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">{showOldPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div></div>
             <div>
               <Label>Nova senha</Label>
-              <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+              <div className="relative mt-1"><Input type={showNewPass ? 'text' : 'password'} value={newPassword} onChange={e => setNewPassword(e.target.value)} className="pr-10" /><button type="button" onClick={() => setShowNewPass(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">{showNewPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div>
               <div className="mt-2 bg-gray-50 rounded-lg p-2.5 space-y-1">
                 {[
                   { ok: newPassword.length >= 6,           txt: 'Mínimo 6 caracteres' },
@@ -328,7 +331,7 @@ const SelectSegmento = () => {
                 ))}
               </div>
             </div>
-            <div><Label>Confirmar nova senha</Label><Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} /></div>
+            <div><Label>Confirmar nova senha</Label><div className="relative mt-1"><Input type={showConfirmPass ? 'text' : 'password'} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="pr-10" /><button type="button" onClick={() => setShowConfirmPass(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">{showConfirmPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div></div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsPasswordModalOpen(false)}>Cancelar</Button>
               <Button type="submit" disabled={isSavingPass} className="bg-[#003580] hover:bg-[#002060] text-white">
@@ -341,7 +344,7 @@ const SelectSegmento = () => {
 
       {/* Modal Dados */}
       <Dialog open={isDadosModalOpen} onOpenChange={setIsDadosModalOpen}>
-        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] sm:max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{isPF ? 'Dados Pessoais' : 'Dados da Empresa'}</DialogTitle>
           </DialogHeader>
@@ -390,7 +393,7 @@ const SelectSegmento = () => {
               <Label>Rua / Logradouro</Label>
               <Input value={dadosForm.rua || ''} onChange={e => setDadosForm(p => ({ ...p, rua: e.target.value }))} placeholder="Preenchido automaticamente pelo CEP" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label>Número</Label>
                 <Input value={dadosForm.numero || ''} onChange={e => setDadosForm(p => ({ ...p, numero: e.target.value }))} placeholder="Ex: 123" />
@@ -400,7 +403,7 @@ const SelectSegmento = () => {
                 <Input value={dadosForm.complemento || ''} onChange={e => setDadosForm(p => ({ ...p, complemento: e.target.value }))} placeholder="Apto, sala..." />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label>Bairro</Label>
                 <Input value={dadosForm.bairro || ''} readOnly className="bg-gray-50 text-gray-500" />
@@ -412,7 +415,7 @@ const SelectSegmento = () => {
             </div>
             <div>
               <Label>Estado</Label>
-              <Input value={dadosForm.estado || ''} readOnly className="bg-gray-50 text-gray-500 w-24" />
+              <Input value={dadosForm.estado || ''} readOnly className="bg-gray-50 text-gray-500 w-full sm:w-24" />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsDadosModalOpen(false)}>Cancelar</Button>

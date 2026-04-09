@@ -211,6 +211,10 @@ const AdminDashboard = () => {
     const { razao_social, cnpj, email_cliente, data_nascimento, cep, rua, numero, bairro, cidade, estado } = newEmpresa;
     if (!razao_social || !cnpj || !email_cliente)
       return toast({ variant: 'destructive', title: 'Erro', description: 'Todos os campos obrigatórios devem ser preenchidos.' });
+    if (!cep || cep.replace(/\D/g, '').length < 8)
+      return toast({ variant: 'destructive', title: 'Erro', description: 'CEP obrigatório. Digite o CEP e aguarde o preenchimento automático.' });
+    if (!numero)
+      return toast({ variant: 'destructive', title: 'Erro', description: 'Número do endereço obrigatório.' });
     if (tipoPessoa === 'PF') {
       if (!validarCPF(cnpj))
         return toast({ variant: 'destructive', title: 'CPF inválido', description: 'Verifique o CPF informado.' });
@@ -638,7 +642,7 @@ const AdminDashboard = () => {
                   <div><Label htmlFor="nome_fantasia">Nome Fantasia</Label><Input id="nome_fantasia" value={newEmpresa.nome_fantasia} onChange={e => handleInputChange(e, setNewEmpresa)} /></div>
                   <div><Label htmlFor="cnpj">CNPJ *</Label><Input id="cnpj" value={newEmpresa.cnpj} placeholder="00.000.000/0000-00" onChange={e => handleInputChange(e, setNewEmpresa, false)} /></div>
                   <div>
-                    <Label htmlFor="cep">CEP</Label>
+                    <Label htmlFor="cep">CEP *</Label>
                     <div className="flex gap-2">
                       <Input
                         id="cep"
@@ -659,7 +663,7 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="numero">Número</Label>
+                    <Label htmlFor="numero">Número *</Label>
                     <Input id="numero" value={newEmpresa.numero} placeholder="123" onChange={e => handleInputChange(e, setNewEmpresa)} />
                   </div>
                   <div className="md:col-span-2">
@@ -698,7 +702,7 @@ const AdminDashboard = () => {
                     <Input id="data_nascimento" type="date" value={newEmpresa.data_nascimento} onChange={e => handleInputChange(e, setNewEmpresa)} />
                   </div>
                   <div>
-                    <Label htmlFor="cep">CEP</Label>
+                    <Label htmlFor="cep">CEP *</Label>
                     <div className="flex gap-2">
                       <Input
                         id="cep"
@@ -719,7 +723,7 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="numero">Número</Label>
+                    <Label htmlFor="numero">Número *</Label>
                     <Input id="numero" value={newEmpresa.numero} placeholder="123" onChange={e => handleInputChange(e, setNewEmpresa)} />
                   </div>
                   <div className="md:col-span-2">
@@ -747,7 +751,7 @@ const AdminDashboard = () => {
 
               <div className="border-t pt-4">
                 <p className="text-sm font-medium text-gray-600 mb-3">Acesso do cliente</p>
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
                     <Label htmlFor="email_cliente">E-mail *</Label>
                     <Input id="email_cliente" type="email" value={newEmpresa.email_cliente} onChange={e => handleInputChange(e, setNewEmpresa)} />
