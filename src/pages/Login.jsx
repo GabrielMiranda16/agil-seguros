@@ -4,17 +4,22 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useToast } from '@/components/ui/use-toast';
 import { Helmet } from 'react-helmet';
 import { authService } from '@/services/authService';
+import { sendWelcomeEmail } from '@/services/emailService';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isForgotOpen, setIsForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [isSendingReset, setIsSendingReset] = useState(false);
   const { updateUser } = useAuth(); // Assuming updateUser updates the context state and localStorage
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -45,9 +50,9 @@ const LoginPage = () => {
 
         if (safeUser.must_change_password) {
           navigate('/force-change-password');
-        } else if (user.perfil === 'CEO') navigate('/ceo');
-        else if (user.perfil === 'ADM') navigate('/admin');
-        else if (user.perfil === 'CLIENTE') navigate('/select-segmento');
+        } else if (safeUser.perfil === 'CEO') navigate('/ceo');
+        else if (safeUser.perfil === 'ADM') navigate('/admin');
+        else if (safeUser.perfil === 'CLIENTE') navigate('/select-segmento');
     } catch (error) {
         console.error("Login error caught in component:", error);
         toast({
@@ -59,6 +64,30 @@ const LoginPage = () => {
         });
     } finally {
         setIsLoggingIn(false);
+    }
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setIsSendingReset(true);
+    try {
+      const { user, tempPassword } = await authService.resetPassword(forgotEmail);
+      const emailSent = await sendWelcomeEmail({
+        nomeCliente: user.name || user.email,
+        emailCliente: user.email,
+        senhaTemporaria: tempPassword,
+      });
+      if (emailSent) {
+        toast({ title: 'E-mail enviado!', description: 'Verifique sua caixa de entrada com a senha temporária.' });
+      } else {
+        toast({ title: 'Senha redefinida', description: `Sua nova senha temporária é: ${tempPassword}`, duration: 20000 });
+      }
+      setIsForgotOpen(false);
+      setForgotEmail('');
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Erro', description: err.message });
+    } finally {
+      setIsSendingReset(false);
     }
   };
 
@@ -120,11 +149,47 @@ const LoginPage = () => {
                     </>
                   ) : 'Entrar'}
                 </Button>
+                <button
+                  type="button"
+                  onClick={() => { setIsForgotOpen(true); setForgotEmail(email); }}
+                  className="w-full text-center text-sm text-[#003580] hover:underline mt-1"
+                >
+                  Esqueci minha senha
+                </button>
               </form>
             </CardContent>
           </Card>
         </motion.div>
       </div>
+
+      <Dialog open={isForgotOpen} onOpenChange={setIsForgotOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Recuperar senha</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleForgotPassword} className="space-y-4 py-2">
+            <div>
+              <Label htmlFor="forgot-email">E-mail da conta</Label>
+              <Input
+                id="forgot-email"
+                type="email"
+                value={forgotEmail}
+                onChange={e => setForgotEmail(e.target.value)}
+                placeholder="seu@email.com"
+                required
+                className="mt-1 border-[#c8e0f5] focus:border-[#003580] bg-[#f0f7ff]"
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsForgotOpen(false)}>Cancelar</Button>
+              <Button type="submit" style={{ background: '#003580' }} className="text-white" disabled={isSendingReset}>
+                {isSendingReset && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Enviar senha temporária
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

@@ -85,6 +85,36 @@ export const solicitacoesService = {
     }
   },
 
+  async cancelPendingByEmpresa(empresa_id) {
+    try {
+      const { error } = await supabase
+        .from('solicitacoes')
+        .update({ status: 'CANCELADA' })
+        .eq('empresa_id', empresa_id)
+        .in('status', ['PENDENTE', 'EM PROCESSAMENTO']);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Erro ao cancelar solicitações:', error);
+      throw new Error('Não foi possível cancelar as solicitações.');
+    }
+  },
+
+  async cancelSolicitacao(id) {
+    try {
+      const { error } = await supabase
+        .from('solicitacoes')
+        .update({ status: 'CANCELADA' })
+        .eq('id', id);
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Cancel solicitacao error:', error);
+      throw new Error('Não foi possível cancelar a solicitação.');
+    }
+  },
+
   async deleteSolicitacao(id) {
     try {
       const { error } = await supabase

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { apolicesService, SEGMENTOS } from '@/services/apolicesService';
 import { authService } from '@/services/authService';
@@ -33,6 +33,7 @@ const logoUrl = "https://storage.googleapis.com/hostinger-horizons-assets-prod/b
 const SelectSegmento = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -81,7 +82,7 @@ const SelectSegmento = () => {
       }
     };
     fetchData();
-  }, [user]);
+  }, [user, location.key]);
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
@@ -124,6 +125,13 @@ const SelectSegmento = () => {
       cnpj: empresa.cnpj || '',
       data_nascimento: empresa.data_nascimento || '',
       endereco_completo: empresa.endereco_completo || '',
+      cep_busca: '',
+      rua: '',
+      numero: '',
+      complemento: '',
+      bairro: '',
+      cidade: '',
+      estado: '',
     });
     setIsDadosModalOpen(true);
   };
@@ -136,8 +144,15 @@ const SelectSegmento = () => {
       const res = await fetch(`https://viacep.com.br/ws/${nums}/json/`);
       const data = await res.json();
       if (!data.erro) {
-        const end = `${data.logradouro}, ${data.bairro}, ${data.localidade}/${data.uf}, CEP ${cep}`;
-        setDadosForm(prev => ({ ...prev, endereco_completo: end }));
+        setDadosForm(prev => ({
+          ...prev,
+          rua: data.logradouro || '',
+          bairro: data.bairro || '',
+          cidade: data.localidade || '',
+          estado: data.uf || '',
+        }));
+      } else {
+        toast({ variant: 'destructive', title: 'CEP não encontrado' });
       }
     } catch {} finally {
       setIsCepLoading(false);
@@ -148,12 +163,23 @@ const SelectSegmento = () => {
     e.preventDefault();
     setIsSavingDados(true);
     try {
+      const parts = [
+        dadosForm.rua,
+        dadosForm.numero && `nº ${dadosForm.numero}`,
+        dadosForm.complemento,
+        dadosForm.bairro,
+        dadosForm.cidade && dadosForm.estado
+          ? `${dadosForm.cidade}/${dadosForm.estado}`
+          : dadosForm.cidade || dadosForm.estado,
+        dadosForm.cep_busca && `CEP ${dadosForm.cep_busca}`,
+      ].filter(Boolean);
+      const endereco_completo = parts.length > 0 ? parts.join(', ') : (dadosForm.endereco_completo || '');
       await empresasService.updateEmpresa(empresa.id, {
         razao_social: dadosForm.razao_social,
         data_nascimento: dadosForm.data_nascimento || null,
-        endereco_completo: dadosForm.endereco_completo,
+        endereco_completo,
       });
-      setEmpresa(prev => ({ ...prev, ...dadosForm }));
+      setEmpresa(prev => ({ ...prev, razao_social: dadosForm.razao_social, endereco_completo }));
       toast({ title: 'Dados atualizados com sucesso.' });
       setIsDadosModalOpen(false);
     } catch {
@@ -309,7 +335,7 @@ const SelectSegmento = () => {
 
       {/* Modal Dados */}
       <Dialog open={isDadosModalOpen} onOpenChange={setIsDadosModalOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{isPF ? 'Dados Pessoais' : 'Dados da Empresa'}</DialogTitle>
           </DialogHeader>
@@ -328,6 +354,7 @@ const SelectSegmento = () => {
                 <Input type="date" value={dadosForm.data_nascimento || ''} onChange={e => setDadosForm(p => ({ ...p, data_nascimento: e.target.value }))} />
               </div>
             )}
+            {/* Endereço separado */}
             <div>
               <Label>CEP</Label>
               <div className="flex gap-2">
@@ -347,8 +374,32 @@ const SelectSegmento = () => {
               </div>
             </div>
             <div>
-              <Label>Endereço</Label>
-              <Input value={dadosForm.endereco_completo || ''} onChange={e => setDadosForm(p => ({ ...p, endereco_completo: e.target.value }))} />
+              <Label>Rua / Logradouro</Label>
+              <Input value={dadosForm.rua || ''} onChange={e => setDadosForm(p => ({ ...p, rua: e.target.value }))} placeholder="Preenchido automaticamente pelo CEP" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Número</Label>
+                <Input value={dadosForm.numero || ''} onChange={e => setDadosForm(p => ({ ...p, numero: e.target.value }))} placeholder="Ex: 123" />
+              </div>
+              <div>
+                <Label>Complemento</Label>
+                <Input value={dadosForm.complemento || ''} onChange={e => setDadosForm(p => ({ ...p, complemento: e.target.value }))} placeholder="Apto, sala..." />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Bairro</Label>
+                <Input value={dadosForm.bairro || ''} readOnly className="bg-gray-50 text-gray-500" />
+              </div>
+              <div>
+                <Label>Cidade</Label>
+                <Input value={dadosForm.cidade || ''} readOnly className="bg-gray-50 text-gray-500" />
+              </div>
+            </div>
+            <div>
+              <Label>Estado</Label>
+              <Input value={dadosForm.estado || ''} readOnly className="bg-gray-50 text-gray-500 w-24" />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsDadosModalOpen(false)}>Cancelar</Button>

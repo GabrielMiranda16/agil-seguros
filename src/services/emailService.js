@@ -4,6 +4,11 @@ const SERVICE_ID  = import.meta.env.VITE_EMAILJS_SERVICE_ID;
 const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
 const PUBLIC_KEY  = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 
+// Initialize emailjs once when module loads (required in v4)
+if (PUBLIC_KEY) {
+  emailjs.init({ publicKey: PUBLIC_KEY });
+}
+
 export function generateTempPassword(length = 10) {
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#!';
   let pwd = '';
@@ -20,17 +25,17 @@ export async function sendWelcomeEmail({ nomeCliente, emailCliente, senhaTempora
   }
 
   try {
-    await emailjs.send(
+    const result = await emailjs.send(
       SERVICE_ID,
       TEMPLATE_ID,
       {
-        to_name:      nomeCliente,
-        to_email:     emailCliente,
+        to_name:       nomeCliente,
+        to_email:      emailCliente,
         temp_password: senhaTemporaria,
-        from_name:    'Seguros Ágil',
-      },
-      PUBLIC_KEY
+        from_name:     'Seguros Ágil',
+      }
     );
+    console.log('EmailJS result:', result);
     return true;
   } catch (error) {
     console.error('Erro ao enviar e-mail via EmailJS:', error);

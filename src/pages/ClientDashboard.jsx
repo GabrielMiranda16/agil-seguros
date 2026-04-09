@@ -413,7 +413,7 @@ const ClientDashboard = () => {
   const filteredBeneficiarios = useMemo(() => {
     return beneficiariosDaEmpresa
       .filter(b => (filter === 'Todos' || b.situacao === filter))
-      .filter(b => b.nome_completo.toLowerCase().includes(searchTerm.toLowerCase()) || b.cpf.includes(searchTerm) || (b.saude_numero_carteirinha || '').includes(searchTerm) || (b.vida_numero_carteirinha || '').includes(searchTerm) || (b.odonto_numero_carteirinha || '').includes(searchTerm));
+      .filter(b => (b.nome_completo || '').toLowerCase().includes(searchTerm.toLowerCase()) || (b.cpf || '').includes(searchTerm) || (b.saude_numero_carteirinha || '').includes(searchTerm) || (b.vida_numero_carteirinha || '').includes(searchTerm) || (b.odonto_numero_carteirinha || '').includes(searchTerm));
   }, [beneficiariosDaEmpresa, filter, searchTerm]);
   
   useEffect(() => {

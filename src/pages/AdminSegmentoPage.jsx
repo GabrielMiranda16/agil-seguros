@@ -15,7 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   ArrowLeft, ChevronRight, Building, Users, Heart, Car, Plane, Home, PawPrint,
   Building2, Package, Monitor, Plus, Edit, Trash2, Loader2, AlertTriangle,
-  FileText, ExternalLink, DollarSign, FileClock, CheckCircle2, Clock
+  FileText, ExternalLink, DollarSign, FileClock, CheckCircle2, Clock, Search, X
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { applyCnpjMask } from '@/lib/masks';
@@ -39,13 +39,22 @@ const SEGMENTOS_CONFIG = {
 };
 
 const STATUS_COLORS = {
-  green:  { badge: 'bg-green-100 text-green-800',  dot: 'bg-green-500'  },
-  yellow: { badge: 'bg-yellow-100 text-yellow-800',dot: 'bg-yellow-500' },
-  red:    { badge: 'bg-red-100 text-red-800',      dot: 'bg-red-500'    },
-  gray:   { badge: 'bg-gray-100 text-gray-600',    dot: 'bg-gray-400'   },
+  green:  { badge: 'bg-green-100 text-green-800',  dot: 'bg-green-500',  card: 'bg-gray-50 border-gray-200'      },
+  yellow: { badge: 'bg-yellow-100 text-yellow-800',dot: 'bg-yellow-500', card: 'bg-yellow-50 border-yellow-200'  },
+  red:    { badge: 'bg-red-100 text-red-800',      dot: 'bg-red-500',    card: 'bg-red-50 border-red-200'        },
+  gray:   { badge: 'bg-gray-100 text-gray-600',    dot: 'bg-gray-400',   card: 'bg-gray-50 border-gray-200'      },
 };
 
 const emptyApoliceForm = { numero_apolice: '', seguradora: '', vigencia_inicio: '', vigencia_fim: '', valor_premio: '', descricao: '' };
+
+const emptyDadosAdicionais = (segKey) => {
+  if (segKey === 'AUTO_FROTA') return { veiculos: [{ placa: '', marca: '', modelo: '', cor: '', ano: '' }] };
+  if (segKey === 'VIAGEM') return { segurados: [{ nome: '', cpf: '' }] };
+  if (segKey === 'RESIDENCIAL' || segKey === 'EMPRESARIAL') return { cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '' };
+  if (segKey === 'PET_SAUDE') return { nome_pet: '', especie: '', raca: '', idade: '' };
+  if (segKey === 'EQUIPAMENTOS') return { tipo_equipamento: '', marca: '', modelo: '', numero_serie: '', memoria_armazenamento: '', outros_detalhes: '' };
+  return {};
+};
 
 const AdminSegmentoPage = () => {
   const { matrizId, segmento } = useParams();
@@ -70,6 +79,8 @@ const AdminSegmentoPage = () => {
   const [apoliceForm, setApoliceForm] = useState(emptyApoliceForm);
   const [apoliceEmpresaId, setApoliceEmpresaId] = useState('');
   const [contratoFile, setContratoFile] = useState(null);
+  const [dadosAdicionais, setDadosAdicionais] = useState({});
+  const [isCepApoliceLoading, setIsCepApoliceLoading] = useState(false);
 
   const canManage = user.perfil === 'CEO' || user.perfil === 'ADM';
   const isSVD = segConfig?.isSVD;
@@ -104,7 +115,7 @@ const AdminSegmentoPage = () => {
 
         if (isSVD) {
           const benData = await beneficiariosService.getAllBeneficiarios();
-          setBeneficiarios(benData.filter(b => todasIds.includes(b.empresa_id) && !b.data_exclusao));
+          setBeneficiarios(benData.filter(b => todasIds.includes(Number(b.empresa_id)) && !b.data_exclusao));
         }
       } catch (err) {
         toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao carregar dados.' });
@@ -120,18 +131,41 @@ const AdminSegmentoPage = () => {
     solicitacoes.filter(s => Number(s.empresa_id) === empresaId && (s.status === 'PENDENTE' || s.status === 'EM PROCESSAMENTO')).length;
 
   const getBeneficiariosEmpresa = (empresaId) =>
-    beneficiarios.filter(b => b.empresa_id === empresaId);
+    beneficiarios.filter(b => Number(b.empresa_id) === Number(empresaId));
 
   const getApolicesEmpresa = (empresaId) =>
-    apolices.filter(a => a.empresa_id === empresaId && a.ativo !== false);
+    apolices.filter(a => Number(a.empresa_id) === Number(empresaId) && a.ativo !== false);
 
   const todasEmpresas = useMemo(() => matriz ? [{ ...matriz, isMatriz: true }, ...filiais.map(f => ({ ...f, isMatriz: false }))] : [], [matriz, filiais]);
+
+  const buscarCepApolice = async (cep) => {
+    const nums = (cep || '').replace(/\D/g, '');
+    if (nums.length !== 8) return;
+    setIsCepApoliceLoading(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${nums}/json/`);
+      const data = await res.json();
+      if (data.erro) return toast({ variant: 'destructive', title: 'CEP não encontrado' });
+      setDadosAdicionais(prev => ({
+        ...prev,
+        rua: data.logradouro || '',
+        bairro: data.bairro || '',
+        cidade: data.localidade || '',
+        estado: data.uf || '',
+      }));
+    } catch {
+      toast({ variant: 'destructive', title: 'Erro ao buscar CEP' });
+    } finally {
+      setIsCepApoliceLoading(false);
+    }
+  };
 
   const openNewApolice = (empresaId) => {
     setEditingApolice(null);
     setApoliceForm(emptyApoliceForm);
     setApoliceEmpresaId(String(empresaId));
     setContratoFile(null);
+    setDadosAdicionais(emptyDadosAdicionais(segConfig?.key));
     setIsApoliceModalOpen(true);
   };
 
@@ -147,7 +181,21 @@ const AdminSegmentoPage = () => {
     });
     setApoliceEmpresaId(String(ap.empresa_id));
     setContratoFile(null);
+    const defaultDados = emptyDadosAdicionais(segConfig?.key);
+    setDadosAdicionais(ap.dados_adicionais ? { ...defaultDados, ...ap.dados_adicionais } : defaultDados);
     setIsApoliceModalOpen(true);
+  };
+
+  const handleDeleteContrato = async () => {
+    if (!editingApolice?.id) return;
+    try {
+      const updated = await apolicesService.deleteContrato(editingApolice.id, editingApolice.contrato_url);
+      setApolices(prev => prev.map(a => a.id === updated.id ? updated : a));
+      setEditingApolice(prev => ({ ...prev, contrato_url: null }));
+      toast({ title: 'PDF excluído.' });
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Erro', description: err.message });
+    }
   };
 
   const handleSaveApolice = async (e) => {
@@ -161,9 +209,12 @@ const AdminSegmentoPage = () => {
         empresa_id: Number(apoliceEmpresaId),
         valor_premio: apoliceForm.valor_premio ? Number(apoliceForm.valor_premio) : null,
         ativo: true,
+        dados_adicionais: dadosAdicionais,
       };
       // Remove valor_premio and descricao for SVD
       if (isSVD) { delete payload.valor_premio; delete payload.vigencia_inicio; delete payload.vigencia_fim; delete payload.descricao; }
+      // Remove vigência for PET_SAUDE (plano mensal sem data fim)
+      if (segConfig.key === 'PET_SAUDE') { delete payload.vigencia_inicio; delete payload.vigencia_fim; }
 
       let saved;
       if (editingApolice) {
@@ -171,13 +222,27 @@ const AdminSegmentoPage = () => {
         setApolices(prev => prev.map(a => a.id === saved.id ? saved : a));
       } else {
         saved = await apolicesService.createApolice(payload);
-        setApolices(prev => [saved, ...prev]);
+        // Don't add to state yet — wait for upload result
       }
 
-      if (!isSVD && contratoFile) {
-        const url = await apolicesService.uploadContrato(contratoFile, saved.id);
-        const updated = await apolicesService.updateApolice(saved.id, { contrato_url: url });
-        setApolices(prev => prev.map(a => a.id === updated.id ? updated : a));
+      if (contratoFile) {
+        try {
+          const url = await apolicesService.uploadContrato(contratoFile, saved.id);
+          const updated = await apolicesService.updateApolice(saved.id, { contrato_url: url });
+          if (editingApolice) {
+            setApolices(prev => prev.map(a => a.id === updated.id ? updated : a));
+          } else {
+            setApolices(prev => [updated, ...prev]);
+          }
+        } catch (uploadErr) {
+          // If new apólice, roll back the creation
+          if (!editingApolice) {
+            await apolicesService.deleteApolice(saved.id);
+          }
+          throw new Error('Falha no upload do PDF. A apólice não foi salva.');
+        }
+      } else if (!editingApolice) {
+        setApolices(prev => [saved, ...prev]);
       }
 
       toast({ title: editingApolice ? 'Apólice atualizada.' : 'Apólice criada.' });
@@ -192,7 +257,19 @@ const AdminSegmentoPage = () => {
   const handleDeleteApolice = async (id) => {
     try {
       await apolicesService.deleteApolice(id);
-      setApolices(prev => prev.filter(a => a.id !== id));
+      const restantes = apolices.filter(a => a.id !== id);
+      setApolices(restantes);
+
+      // Cancela todas as solicitações pendentes de todas as empresas do grupo
+      const todasIds = todasEmpresas.map(e => e.id);
+      await Promise.all(todasIds.map(eid => solicitacoesService.cancelPendingByEmpresa(eid)));
+      setSolicitacoes(prev => prev.map(s =>
+        todasIds.includes(Number(s.empresa_id)) &&
+        (s.status === 'PENDENTE' || s.status === 'EM PROCESSAMENTO')
+          ? { ...s, status: 'CANCELADA' }
+          : s
+      ));
+
       toast({ title: 'Apólice removida.' });
     } catch (err) {
       toast({ variant: 'destructive', title: 'Erro', description: err.message });
@@ -234,12 +311,12 @@ const AdminSegmentoPage = () => {
 
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 flex-wrap">
-            <button onClick={() => navigate('/admin')} className="text-sm text-gray-400 hover:text-gray-700 transition-colors">Clientes</button>
-            <ChevronRight className="h-4 w-4 text-gray-300" />
-            <button onClick={() => navigate(`/admin/cliente/${matrizId}`)} className="text-sm text-gray-500 hover:text-gray-800 transition-colors">
+            <button onClick={() => navigate('/admin')} className="text-sm text-white/60 hover:text-white transition-colors">Clientes</button>
+            <ChevronRight className="h-4 w-4 text-white/30" />
+            <button onClick={() => navigate(`/admin/cliente/${matrizId}`)} className="text-sm text-white/70 hover:text-white transition-colors">
               {matriz.nome_fantasia || matriz.razao_social}
             </button>
-            <ChevronRight className="h-4 w-4 text-gray-300" />
+            <ChevronRight className="h-4 w-4 text-white/30" />
             <span className="text-sm font-semibold text-white flex items-center gap-1.5">
               <Icon className="h-4 w-4" /> {label}
             </span>
@@ -248,7 +325,7 @@ const AdminSegmentoPage = () => {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <button onClick={() => navigate(`/admin/cliente/${matrizId}`)} className="flex items-center gap-1 text-gray-500 hover:text-gray-800 transition-colors mr-1">
+              <button onClick={() => navigate(`/admin/cliente/${matrizId}`)} className="flex items-center gap-1 text-white/60 hover:text-white transition-colors mr-1">
                 <ArrowLeft className="h-4 w-4" />
               </button>
               <h1 className="text-xl font-bold text-white">{label}</h1>
@@ -339,7 +416,7 @@ const AdminSegmentoPage = () => {
                           const status = apolicesService.getStatusApolice(ap.vigencia_fim);
                           const sc = STATUS_COLORS[status.color] || STATUS_COLORS.gray;
                           return (
-                            <div key={ap.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-gray-50 rounded-xl border hover:shadow-sm transition-shadow">
+                            <div key={ap.id} className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border hover:shadow-sm transition-shadow ${sc.card}`}>
                               <div className="flex items-start gap-3">
                                 <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${sc.dot}`} />
                                 <div>
@@ -350,9 +427,14 @@ const AdminSegmentoPage = () => {
                                   {(ap.vigencia_inicio || ap.vigencia_fim) && (
                                     <p className="text-xs text-gray-400 mt-0.5">
                                       Vigência: {ap.vigencia_inicio || '—'} → {ap.vigencia_fim || '—'}
-                                      {status.dias !== undefined && status.dias >= 0 && (
-                                        <span className={`ml-2 font-medium ${status.color === 'yellow' ? 'text-yellow-600' : 'text-green-600'}`}>
-                                          ({status.dias} dias)
+                                      {status.dias !== undefined && status.color === 'red' && (
+                                        <span className="ml-2 font-medium text-red-600">
+                                          (venceu há {Math.abs(status.dias)} dias)
+                                        </span>
+                                      )}
+                                      {status.dias !== undefined && status.color === 'yellow' && (
+                                        <span className="ml-2 font-medium text-yellow-600">
+                                          ({status.dias} dias restantes)
                                         </span>
                                       )}
                                     </p>
@@ -361,6 +443,22 @@ const AdminSegmentoPage = () => {
                                     <p className="text-xs text-gray-400">
                                       Prêmio: R$ {Number(ap.valor_premio).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                     </p>
+                                  )}
+                                  {/* Dados adicionais por segmento */}
+                                  {ap.dados_adicionais && segConfig?.key === 'AUTO_FROTA' && ap.dados_adicionais.veiculos?.length > 0 && (
+                                    <p className="text-xs text-gray-400 mt-0.5">{ap.dados_adicionais.veiculos.map(v => [v.placa, v.marca, v.modelo].filter(Boolean).join(' ')).join(' | ')}</p>
+                                  )}
+                                  {ap.dados_adicionais && segConfig?.key === 'VIAGEM' && ap.dados_adicionais.segurados?.length > 0 && (
+                                    <p className="text-xs text-gray-400 mt-0.5">{ap.dados_adicionais.segurados.length} segurado(s)</p>
+                                  )}
+                                  {ap.dados_adicionais && (segConfig?.key === 'RESIDENCIAL' || segConfig?.key === 'EMPRESARIAL') && ap.dados_adicionais.rua && (
+                                    <p className="text-xs text-gray-400 mt-0.5">{[ap.dados_adicionais.rua, ap.dados_adicionais.numero && `nº ${ap.dados_adicionais.numero}`, ap.dados_adicionais.cidade].filter(Boolean).join(', ')}</p>
+                                  )}
+                                  {ap.dados_adicionais && segConfig?.key === 'PET_SAUDE' && ap.dados_adicionais.nome_pet && (
+                                    <p className="text-xs text-gray-400 mt-0.5">{ap.dados_adicionais.nome_pet} · {ap.dados_adicionais.especie} {ap.dados_adicionais.raca ? `(${ap.dados_adicionais.raca})` : ''}</p>
+                                  )}
+                                  {ap.dados_adicionais && segConfig?.key === 'EQUIPAMENTOS' && ap.dados_adicionais.marca && (
+                                    <p className="text-xs text-gray-400 mt-0.5">{[ap.dados_adicionais.tipo_equipamento, ap.dados_adicionais.marca, ap.dados_adicionais.modelo].filter(Boolean).join(' · ')}</p>
                                   )}
                                 </div>
                               </div>
@@ -405,15 +503,15 @@ const AdminSegmentoPage = () => {
 
       {/* Modal Apólice */}
       <Dialog open={isApoliceModalOpen} onOpenChange={setIsApoliceModalOpen}>
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingApolice ? 'Editar Apólice' : 'Nova Apólice'}</DialogTitle>
             <p className="text-sm text-muted-foreground">{label}</p>
           </DialogHeader>
           <form onSubmit={handleSaveApolice} className="space-y-4 py-2">
-            {/* Empresa selector */}
+            {/* Empresa/Cliente selector */}
             <div>
-              <Label>Empresa</Label>
+              <Label>{segConfig?.key === 'VIAGEM' ? 'Cliente' : 'Empresa'}</Label>
               <select
                 className="w-full mt-1 h-9 px-3 rounded-md border border-input bg-background text-sm"
                 value={apoliceEmpresaId}
@@ -442,16 +540,160 @@ const AdminSegmentoPage = () => {
             {/* Fields only for non-SVD segments */}
             {!isSVD && (
               <>
-                <div className="grid grid-cols-2 gap-4">
-                  <div><Label>Vigência Início</Label><Input type="date" value={apoliceForm.vigencia_inicio} onChange={e => setApoliceForm(p => ({ ...p, vigencia_inicio: e.target.value }))} /></div>
-                  <div><Label>Vigência Fim</Label><Input type="date" value={apoliceForm.vigencia_fim} onChange={e => setApoliceForm(p => ({ ...p, vigencia_fim: e.target.value }))} /></div>
-                </div>
+                {/* Pet Saúde: sem vigência (plano mensal) */}
+                {segConfig?.key !== 'PET_SAUDE' && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div><Label>Vigência Início</Label><Input type="date" value={apoliceForm.vigencia_inicio} onChange={e => setApoliceForm(p => ({ ...p, vigencia_inicio: e.target.value }))} /></div>
+                    <div><Label>Vigência Fim</Label><Input type="date" value={apoliceForm.vigencia_fim} onChange={e => setApoliceForm(p => ({ ...p, vigencia_fim: e.target.value }))} /></div>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-4">
                   <div><Label>Valor do Prêmio (R$)</Label><Input type="number" step="0.01" value={apoliceForm.valor_premio} onChange={e => setApoliceForm(p => ({ ...p, valor_premio: e.target.value }))} placeholder="0,00" /></div>
                   <div><Label>Contrato (PDF)</Label><Input type="file" accept=".pdf" onChange={e => setContratoFile(e.target.files?.[0] || null)} /></div>
                 </div>
                 <div><Label>Observações</Label><Input value={apoliceForm.descricao} onChange={e => setApoliceForm(p => ({ ...p, descricao: e.target.value }))} placeholder="Informações adicionais" /></div>
               </>
+            )}
+
+            {/* SVD: allow PDF upload too */}
+            {isSVD && (
+              <div>
+                <Label>Contrato (PDF)</Label>
+                <Input type="file" accept=".pdf" className="mt-1" onChange={e => setContratoFile(e.target.files?.[0] || null)} />
+              </div>
+            )}
+
+            {/* Show current PDF with delete option when editing */}
+            {editingApolice?.contrato_url && (
+              <div className="flex items-center gap-2 p-2 bg-blue-50 rounded border border-blue-100">
+                <FileText className="h-4 w-4 text-blue-600 shrink-0" />
+                <a href={editingApolice.contrato_url} target="_blank" rel="noreferrer" className="text-sm text-blue-600 hover:underline flex-1 truncate">PDF atual</a>
+                <Button type="button" variant="ghost" size="sm" className="text-red-500 hover:text-red-700 h-7 px-2" onClick={handleDeleteContrato}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            )}
+
+            {/* ---- CAMPOS ESPECÍFICOS POR SEGMENTO ---- */}
+
+            {/* AUTO_FROTA: veículos */}
+            {segConfig?.key === 'AUTO_FROTA' && (
+              <div className="space-y-3 border-t pt-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-semibold">Veículos</Label>
+                  <Button type="button" size="sm" variant="outline" onClick={() => setDadosAdicionais(p => ({ ...p, veiculos: [...(p.veiculos || []), { placa: '', marca: '', modelo: '', cor: '', ano: '' }] }))}>
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar
+                  </Button>
+                </div>
+                {(dadosAdicionais.veiculos || []).map((v, i) => (
+                  <div key={i} className="p-3 border rounded-lg bg-gray-50 space-y-2 relative">
+                    {(dadosAdicionais.veiculos || []).length > 1 && (
+                      <button type="button" className="absolute top-2 right-2 text-gray-400 hover:text-red-500" onClick={() => setDadosAdicionais(p => ({ ...p, veiculos: p.veiculos.filter((_, idx) => idx !== i) }))}>
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                    <p className="text-xs font-medium text-gray-500">Veículo {i + 1}</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div><Label className="text-xs">Placa</Label><Input className="h-8 text-sm" value={v.placa} onChange={e => setDadosAdicionais(p => { const arr = [...p.veiculos]; arr[i] = { ...arr[i], placa: e.target.value.toUpperCase() }; return { ...p, veiculos: arr }; })} placeholder="ABC-1234" /></div>
+                      <div><Label className="text-xs">Ano</Label><Input className="h-8 text-sm" value={v.ano} onChange={e => setDadosAdicionais(p => { const arr = [...p.veiculos]; arr[i] = { ...arr[i], ano: e.target.value }; return { ...p, veiculos: arr }; })} placeholder="2023" /></div>
+                      <div><Label className="text-xs">Marca</Label><Input className="h-8 text-sm" value={v.marca} onChange={e => setDadosAdicionais(p => { const arr = [...p.veiculos]; arr[i] = { ...arr[i], marca: e.target.value }; return { ...p, veiculos: arr }; })} placeholder="Toyota" /></div>
+                      <div><Label className="text-xs">Modelo</Label><Input className="h-8 text-sm" value={v.modelo} onChange={e => setDadosAdicionais(p => { const arr = [...p.veiculos]; arr[i] = { ...arr[i], modelo: e.target.value }; return { ...p, veiculos: arr }; })} placeholder="Corolla" /></div>
+                      <div className="col-span-2"><Label className="text-xs">Cor</Label><Input className="h-8 text-sm" value={v.cor} onChange={e => setDadosAdicionais(p => { const arr = [...p.veiculos]; arr[i] = { ...arr[i], cor: e.target.value }; return { ...p, veiculos: arr }; })} placeholder="Prata" /></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* VIAGEM: segurados */}
+            {segConfig?.key === 'VIAGEM' && (
+              <div className="space-y-3 border-t pt-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-semibold">Segurados</Label>
+                  <Button type="button" size="sm" variant="outline" onClick={() => setDadosAdicionais(p => ({ ...p, segurados: [...(p.segurados || []), { nome: '', cpf: '' }] }))}>
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar
+                  </Button>
+                </div>
+                {(dadosAdicionais.segurados || []).map((s, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <div className="flex-1 grid grid-cols-2 gap-2">
+                      <Input className="h-8 text-sm" placeholder="Nome completo" value={s.nome} onChange={e => setDadosAdicionais(p => { const arr = [...p.segurados]; arr[i] = { ...arr[i], nome: e.target.value }; return { ...p, segurados: arr }; })} />
+                      <Input className="h-8 text-sm" placeholder="CPF" value={s.cpf} onChange={e => setDadosAdicionais(p => { const arr = [...p.segurados]; arr[i] = { ...arr[i], cpf: e.target.value }; return { ...p, segurados: arr }; })} />
+                    </div>
+                    {(dadosAdicionais.segurados || []).length > 1 && (
+                      <button type="button" className="text-gray-400 hover:text-red-500 shrink-0" onClick={() => setDadosAdicionais(p => ({ ...p, segurados: p.segurados.filter((_, idx) => idx !== i) }))}>
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* RESIDENCIAL ou EMPRESARIAL: endereço com CEP */}
+            {(segConfig?.key === 'RESIDENCIAL' || segConfig?.key === 'EMPRESARIAL') && (
+              <div className="space-y-3 border-t pt-3">
+                <Label className="text-sm font-semibold">Endereço do Risco</Label>
+                <div className="grid grid-cols-1 gap-3">
+                  <div>
+                    <Label className="text-xs">CEP</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        className="h-8 text-sm"
+                        placeholder="00000-000"
+                        maxLength={9}
+                        value={dadosAdicionais.cep || ''}
+                        onChange={e => setDadosAdicionais(p => ({ ...p, cep: e.target.value }))}
+                        onBlur={() => buscarCepApolice(dadosAdicionais.cep || '')}
+                      />
+                      <button type="button" onClick={() => buscarCepApolice(dadosAdicionais.cep || '')} disabled={isCepApoliceLoading}
+                        className="px-3 py-1.5 rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-gray-600 flex items-center gap-1 text-sm">
+                        {isCepApoliceLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="col-span-2"><Label className="text-xs">Rua</Label><Input className="h-8 text-sm" value={dadosAdicionais.rua || ''} onChange={e => setDadosAdicionais(p => ({ ...p, rua: e.target.value }))} /></div>
+                    <div><Label className="text-xs">Número</Label><Input className="h-8 text-sm" value={dadosAdicionais.numero || ''} onChange={e => setDadosAdicionais(p => ({ ...p, numero: e.target.value }))} placeholder="123" /></div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div><Label className="text-xs">Complemento</Label><Input className="h-8 text-sm" value={dadosAdicionais.complemento || ''} onChange={e => setDadosAdicionais(p => ({ ...p, complemento: e.target.value }))} placeholder="Apto, bloco..." /></div>
+                    <div><Label className="text-xs">Bairro</Label><Input className="h-8 text-sm bg-gray-50 text-gray-600" readOnly value={dadosAdicionais.bairro || ''} /></div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div><Label className="text-xs">Cidade</Label><Input className="h-8 text-sm bg-gray-50 text-gray-600" readOnly value={dadosAdicionais.cidade || ''} /></div>
+                    <div><Label className="text-xs">Estado</Label><Input className="h-8 text-sm bg-gray-50 text-gray-600" readOnly value={dadosAdicionais.estado || ''} /></div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* PET_SAUDE: dados do pet */}
+            {segConfig?.key === 'PET_SAUDE' && (
+              <div className="space-y-3 border-t pt-3">
+                <Label className="text-sm font-semibold">Dados do Pet</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label className="text-xs">Nome do Pet</Label><Input className="h-8 text-sm" value={dadosAdicionais.nome_pet || ''} onChange={e => setDadosAdicionais(p => ({ ...p, nome_pet: e.target.value }))} placeholder="Ex: Rex" /></div>
+                  <div><Label className="text-xs">Espécie</Label><Input className="h-8 text-sm" value={dadosAdicionais.especie || ''} onChange={e => setDadosAdicionais(p => ({ ...p, especie: e.target.value }))} placeholder="Cão, Gato..." /></div>
+                  <div><Label className="text-xs">Raça</Label><Input className="h-8 text-sm" value={dadosAdicionais.raca || ''} onChange={e => setDadosAdicionais(p => ({ ...p, raca: e.target.value }))} placeholder="Ex: Labrador" /></div>
+                  <div><Label className="text-xs">Idade</Label><Input className="h-8 text-sm" value={dadosAdicionais.idade || ''} onChange={e => setDadosAdicionais(p => ({ ...p, idade: e.target.value }))} placeholder="Ex: 2 anos" /></div>
+                </div>
+              </div>
+            )}
+
+            {/* EQUIPAMENTOS: dados do equipamento */}
+            {segConfig?.key === 'EQUIPAMENTOS' && (
+              <div className="space-y-3 border-t pt-3">
+                <Label className="text-sm font-semibold">Dados do Equipamento</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label className="text-xs">Tipo</Label><Input className="h-8 text-sm" value={dadosAdicionais.tipo_equipamento || ''} onChange={e => setDadosAdicionais(p => ({ ...p, tipo_equipamento: e.target.value }))} placeholder="Notebook, Câmera..." /></div>
+                  <div><Label className="text-xs">Marca</Label><Input className="h-8 text-sm" value={dadosAdicionais.marca || ''} onChange={e => setDadosAdicionais(p => ({ ...p, marca: e.target.value }))} placeholder="Ex: Dell" /></div>
+                  <div><Label className="text-xs">Modelo</Label><Input className="h-8 text-sm" value={dadosAdicionais.modelo || ''} onChange={e => setDadosAdicionais(p => ({ ...p, modelo: e.target.value }))} placeholder="Ex: Inspiron 15" /></div>
+                  <div><Label className="text-xs">Número de Série</Label><Input className="h-8 text-sm" value={dadosAdicionais.numero_serie || ''} onChange={e => setDadosAdicionais(p => ({ ...p, numero_serie: e.target.value }))} /></div>
+                  <div><Label className="text-xs">Armazenamento</Label><Input className="h-8 text-sm" value={dadosAdicionais.memoria_armazenamento || ''} onChange={e => setDadosAdicionais(p => ({ ...p, memoria_armazenamento: e.target.value }))} placeholder="Ex: 512GB SSD" /></div>
+                  <div><Label className="text-xs">Outros detalhes</Label><Input className="h-8 text-sm" value={dadosAdicionais.outros_detalhes || ''} onChange={e => setDadosAdicionais(p => ({ ...p, outros_detalhes: e.target.value }))} /></div>
+                </div>
+              </div>
             )}
 
             <DialogFooter>

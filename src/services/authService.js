@@ -101,6 +101,34 @@ export const authService = {
     }
   },
 
+  async resetPassword(email) {
+    try {
+      const { data: userData, error: fetchError } = await supabase
+        .from('users')
+        .select('id, email, name')
+        .eq('email', email)
+        .maybeSingle();
+      if (fetchError) throw fetchError;
+      if (!userData) throw new Error('E-mail não encontrado.');
+
+      const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#!';
+      let tempPassword = '';
+      for (let i = 0; i < 10; i++) tempPassword += chars.charAt(Math.floor(Math.random() * chars.length));
+
+      const hashed = await hashPassword(tempPassword);
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ password: hashed, must_change_password: true })
+        .eq('id', userData.id);
+      if (updateError) throw updateError;
+
+      return { user: userData, tempPassword };
+    } catch (error) {
+      console.error('Reset password error:', error);
+      throw error;
+    }
+  },
+
   logoutUser() {
     localStorage.removeItem('user');
     return true;

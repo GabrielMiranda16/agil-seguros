@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/contexts/CompanyContext';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ const SelectCompanyPage = () => {
     const { user, logout } = useAuth();
     const { setSelectedCompanyId } = useCompany();
     const navigate = useNavigate();
+    const location = useLocation();
     
     const [beneficiarios, setBeneficiarios] = useState([]);
     const [solicitacoes, setSolicitacoes] = useState([]);
@@ -92,7 +93,7 @@ const SelectCompanyPage = () => {
         fetchCompanies();
         
         return () => { mounted = false; };
-    }, [user]);
+    }, [user, location.key]);
 
     const getCompanyStats = (empresaId) => {
         const companyBeneficiarios = beneficiarios.filter(b => Number(b.empresa_id) === Number(empresaId) && !(b.data_exclusao));
@@ -153,7 +154,7 @@ const SelectCompanyPage = () => {
                         {user.perfil === 'CLIENTE' && <p className="text-lg text-white/70">{matriz?.nome_fantasia || matriz?.razao_social}</p>}
                         {(user.perfil === 'ADM' || user.perfil === 'CEO') && <p className="text-lg text-white/70">Selecione uma empresa para gerenciar</p>}
                     </div>
-                    <Button variant="ghost" onClick={handleLogout} className="text-gray-600 hover:text-gray-900 hover:bg-gray-200">
+                    <Button variant="ghost" onClick={handleLogout} className="text-white/70 hover:text-white hover:bg-white/10">
                         <LogOut className="mr-2 h-4 w-4"/> Sair
                     </Button>
                 </div>

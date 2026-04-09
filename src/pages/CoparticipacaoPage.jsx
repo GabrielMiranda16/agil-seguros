@@ -76,7 +76,7 @@ const CoparticipacaoPage = () => {
   }, []);
 
   const getBeneficiarioName = (id) => {
-    const ben = beneficiarios.find(b => b.id === id);
+    const ben = beneficiarios.find(b => String(b.id) === String(id));
     return ben ? ben.nome_completo : 'Desconhecido';
   };
 
@@ -109,18 +109,18 @@ const CoparticipacaoPage = () => {
   const beneficiariosFiltrados = useMemo(() => {
     if (!selectedCompanyId) return [];
 
-    const empresaSelecionada = empresas.find(e => e.id === selectedCompanyId);
+    const empresaSelecionada = empresas.find(e => String(e.id) === String(selectedCompanyId));
     if (!empresaSelecionada) return [];
 
     let idsDasEmpresas = [];
     if (empresaSelecionada.tipo === 'MATRIZ') {
-        const filiais = empresas.filter(e => e.empresa_matriz_id === selectedCompanyId);
-        idsDasEmpresas = [selectedCompanyId, ...filiais.map(f => f.id)];
+        const filiais = empresas.filter(e => String(e.empresa_matriz_id) === String(selectedCompanyId));
+        idsDasEmpresas = [selectedCompanyId, ...filiais.map(f => f.id)].map(String);
     } else {
-        idsDasEmpresas = [selectedCompanyId];
+        idsDasEmpresas = [String(selectedCompanyId)];
     }
-    
-    return beneficiarios.filter(b => idsDasEmpresas.includes(b.empresa_id) && !b.data_exclusao);
+
+    return beneficiarios.filter(b => idsDasEmpresas.includes(String(b.empresa_id)) && !b.data_exclusao);
   }, [beneficiarios, selectedCompanyId, empresas]);
 
   const handleAddClick = () => {
@@ -156,7 +156,7 @@ const CoparticipacaoPage = () => {
   const handleEditClick = (coparticipacao) => {
     setEditingId(coparticipacao.id);
     
-    const beneficiary = beneficiarios.find(b => b.id === coparticipacao.beneficiario_id);
+    const beneficiary = beneficiarios.find(b => String(b.id) === String(coparticipacao.beneficiario_id));
     let dependents = [];
     if (beneficiary) {
         // Find dependents by matching nome_titular to the beneficiary's name
@@ -191,8 +191,7 @@ const CoparticipacaoPage = () => {
   };
 
   const handleBeneficiaryChange = (value) => {
-    const beneficiaryId = parseInt(value);
-    const beneficiary = beneficiarios.find(b => b.id === beneficiaryId);
+    const beneficiary = beneficiarios.find(b => String(b.id) === String(value));
     
     if (beneficiary) {
       // Find dependents
@@ -226,7 +225,7 @@ const CoparticipacaoPage = () => {
     setSelectedDependentId(value);
     
     if (value === 'titular') {
-      const beneficiary = beneficiarios.find(b => b.id === parseInt(formData.beneficiario_id));
+      const beneficiary = beneficiarios.find(b => String(b.id) === String(formData.beneficiario_id));
       if (beneficiary) {
         setFormData(prev => ({
           ...prev,

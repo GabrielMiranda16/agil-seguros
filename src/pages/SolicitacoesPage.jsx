@@ -247,7 +247,7 @@ const SolicitacoesPage = () => {
     if (solicitacao) {
       setEditingSolicitacao(solicitacao);
       setFormData({
-        beneficiario_id: solicitacao.beneficiario_id.toString(),
+        beneficiario_id: solicitacao.beneficiario_id?.toString() || '',
         tipo_plano: solicitacao.tipo_plano,
         tipo_solicitacao: solicitacao.tipo_solicitacao,
         status: solicitacao.status,
@@ -477,7 +477,7 @@ const SolicitacoesPage = () => {
 
   const handleCancel = async (id) => {
     try {
-      await solicitacoesService.updateSolicitacao(id, { status: 'CANCELADA' });
+      await solicitacoesService.cancelSolicitacao(id);
       setSolicitacoes(prev => prev.map(s => s.id === id ? { ...s, status: 'CANCELADA' } : s));
       toast({ title: 'Sucesso', description: 'Solicitação cancelada.' });
     } catch (error) {

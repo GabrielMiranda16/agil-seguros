@@ -11,10 +11,10 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const STATUS_STYLE = {
-  green:  { badge: 'bg-green-100 text-green-800 border-green-200',  label: 'Ativa' },
-  yellow: { badge: 'bg-yellow-100 text-yellow-800 border-yellow-200', label: 'Vencendo em breve' },
-  red:    { badge: 'bg-red-100 text-red-800 border-red-200',         label: 'Vencida' },
-  gray:   { badge: 'bg-gray-100 text-gray-600 border-gray-200',      label: 'Sem vigência' },
+  green:  { badge: 'bg-green-100 text-green-800 border-green-200',   label: 'Ativa',             card: 'bg-white border-gray-100'   },
+  yellow: { badge: 'bg-yellow-100 text-yellow-800 border-yellow-200', label: 'Vencendo em breve', card: 'bg-yellow-50 border-yellow-200' },
+  red:    { badge: 'bg-red-100 text-red-800 border-red-200',          label: 'Vencida',           card: 'bg-red-50 border-red-200'   },
+  gray:   { badge: 'bg-gray-100 text-gray-600 border-gray-200',       label: 'Sem vigência',      card: 'bg-white border-gray-100'   },
 };
 
 const SelectApolice = () => {
@@ -106,7 +106,7 @@ const SelectApolice = () => {
                   >
                     <div
                       onClick={() => navigate(`/apolice/${apolice.id}`)}
-                      className="relative w-full p-6 rounded-3xl bg-white shadow-md hover:shadow-xl transition-all duration-300 flex flex-col gap-4 cursor-pointer border border-gray-100"
+                      className={`relative w-full p-6 rounded-3xl shadow-md hover:shadow-xl transition-all duration-300 flex flex-col gap-4 cursor-pointer border ${style.card}`}
                     >
                       {(status.color === 'yellow' || status.color === 'red') && (
                         <div className="absolute top-3 right-3">

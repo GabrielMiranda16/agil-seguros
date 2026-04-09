@@ -180,8 +180,8 @@ const DashboardLayout = ({ children }) => {
               </Link>
               {currentEmpresa && (
                   <div className="hidden md:flex items-center text-sm">
-                    <ChevronsRight className="h-5 w-5 text-gray-400 mx-1" />
-                    <span className="font-semibold text-gray-600 truncate max-w-xs">
+                    <ChevronsRight className="h-5 w-5 text-white/40 mx-1" />
+                    <span className="font-semibold text-white/80 truncate max-w-xs">
                       {currentEmpresa.nome_fantasia || currentEmpresa.razao_social}
                     </span>
                     <Badge variant={currentEmpresa.tipo === 'MATRIZ' ? 'default' : 'secondary'} className="ml-2">{currentEmpresa.tipo}</Badge>

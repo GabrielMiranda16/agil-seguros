@@ -191,8 +191,8 @@ const CEODashboard = () => {
         .map(([id, count]) => {
             const emp = empresas.find(e => String(e.id) === String(id));
             return {
-                name: emp ? (emp.nome_fantasia || emp.razao_social).substring(0, 15) : `ID: ${id}`,
-                full_name: emp ? (emp.nome_fantasia || emp.razao_social) : `ID: ${id}`,
+                name: emp ? (emp.nome_fantasia || emp.razao_social || `ID: ${id}`).substring(0, 15) : `ID: ${id}`,
+                full_name: emp ? (emp.nome_fantasia || emp.razao_social || `ID: ${id}`) : `ID: ${id}`,
                 beneficiarios: count
             };
         })

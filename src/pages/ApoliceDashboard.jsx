@@ -53,12 +53,13 @@ const ApoliceDashboard = () => {
 
   const isAdmin = user?.perfil === 'CEO' || user?.perfil === 'ADM';
   const isCliente = user?.perfil === 'CLIENTE';
-  // Tabs de Beneficiários/Solicitações/Coparticipação apenas para SVD
-  const isSVD = apolice?.segmento === 'SAUDE_VIDA_ODONTO';
-  const showTabs = (isAdmin || isCliente) && isSVD;
 
   const [loading, setLoading] = useState(true);
   const [apolice, setApolice] = useState(null);
+
+  // Tabs de Beneficiários/Solicitações/Coparticipação apenas para SVD
+  const isSVD = apolice?.segmento === 'SAUDE_VIDA_ODONTO';
+  const showTabs = (isAdmin || isCliente) && isSVD;
   const [beneficiarios, setBeneficiarios] = useState([]);
   const [solicitacoes, setSolicitacoes] = useState([]);
   const [loadingBen, setLoadingBen] = useState(false);
@@ -265,6 +266,79 @@ const ApoliceDashboard = () => {
                     <Card>
                       <CardHeader><CardTitle className="text-base">Observações</CardTitle></CardHeader>
                       <CardContent><p className="text-gray-600 text-sm leading-relaxed">{apolice.descricao}</p></CardContent>
+                    </Card>
+                  )}
+
+                  {/* Dados Adicionais por Segmento */}
+                  {apolice.dados_adicionais && apolice.segmento === 'AUTO_FROTA' && (apolice.dados_adicionais.veiculos || []).length > 0 && (
+                    <Card>
+                      <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Car className="h-4 w-4" /> Veículos</CardTitle></CardHeader>
+                      <CardContent className="space-y-3">
+                        {apolice.dados_adicionais.veiculos.map((v, i) => (
+                          <div key={i} className="p-3 bg-gray-50 rounded-lg">
+                            <p className="font-semibold text-gray-800 text-sm">{v.placa || `Veículo ${i+1}`}</p>
+                            <div className="grid grid-cols-2 gap-x-4 mt-1 text-xs text-gray-500">
+                              {v.marca && <span>Marca: {v.marca}</span>}
+                              {v.modelo && <span>Modelo: {v.modelo}</span>}
+                              {v.cor && <span>Cor: {v.cor}</span>}
+                              {v.ano && <span>Ano: {v.ano}</span>}
+                            </div>
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {apolice.dados_adicionais && apolice.segmento === 'VIAGEM' && (apolice.dados_adicionais.segurados || []).length > 0 && (
+                    <Card>
+                      <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Plane className="h-4 w-4" /> Segurados</CardTitle></CardHeader>
+                      <CardContent>
+                        <div className="space-y-1">
+                          {apolice.dados_adicionais.segurados.map((s, i) => (
+                            <div key={i} className="flex items-center justify-between text-sm py-1 border-b last:border-0">
+                              <span className="text-gray-800">{s.nome || '—'}</span>
+                              <span className="text-gray-400 text-xs">{s.cpf || ''}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {apolice.dados_adicionais && (apolice.segmento === 'RESIDENCIAL' || apolice.segmento === 'EMPRESARIAL') && apolice.dados_adicionais.rua && (
+                    <Card>
+                      <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Home className="h-4 w-4" /> Endereço do Risco</CardTitle></CardHeader>
+                      <CardContent>
+                        <p className="text-gray-800 text-sm">
+                          {[apolice.dados_adicionais.rua, apolice.dados_adicionais.numero && `nº ${apolice.dados_adicionais.numero}`, apolice.dados_adicionais.complemento, apolice.dados_adicionais.bairro, apolice.dados_adicionais.cidade && apolice.dados_adicionais.estado ? `${apolice.dados_adicionais.cidade}/${apolice.dados_adicionais.estado}` : apolice.dados_adicionais.cidade, apolice.dados_adicionais.cep && `CEP ${apolice.dados_adicionais.cep}`].filter(Boolean).join(', ')}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {apolice.dados_adicionais && apolice.segmento === 'PET_SAUDE' && apolice.dados_adicionais.nome_pet && (
+                    <Card>
+                      <CardHeader><CardTitle className="flex items-center gap-2 text-base"><PawPrint className="h-4 w-4" /> Dados do Pet</CardTitle></CardHeader>
+                      <CardContent className="grid grid-cols-2 gap-4 text-sm">
+                        <div><p className="text-xs text-gray-400 uppercase">Nome</p><p className="font-semibold text-gray-800">{apolice.dados_adicionais.nome_pet}</p></div>
+                        {apolice.dados_adicionais.especie && <div><p className="text-xs text-gray-400 uppercase">Espécie</p><p className="font-semibold text-gray-800">{apolice.dados_adicionais.especie}</p></div>}
+                        {apolice.dados_adicionais.raca && <div><p className="text-xs text-gray-400 uppercase">Raça</p><p className="font-semibold text-gray-800">{apolice.dados_adicionais.raca}</p></div>}
+                        {apolice.dados_adicionais.idade && <div><p className="text-xs text-gray-400 uppercase">Idade</p><p className="font-semibold text-gray-800">{apolice.dados_adicionais.idade}</p></div>}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {apolice.dados_adicionais && apolice.segmento === 'EQUIPAMENTOS' && (apolice.dados_adicionais.marca || apolice.dados_adicionais.tipo_equipamento) && (
+                    <Card>
+                      <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Monitor className="h-4 w-4" /> Equipamento</CardTitle></CardHeader>
+                      <CardContent className="grid grid-cols-2 gap-4 text-sm">
+                        {apolice.dados_adicionais.tipo_equipamento && <div><p className="text-xs text-gray-400 uppercase">Tipo</p><p className="font-semibold text-gray-800">{apolice.dados_adicionais.tipo_equipamento}</p></div>}
+                        {apolice.dados_adicionais.marca && <div><p className="text-xs text-gray-400 uppercase">Marca</p><p className="font-semibold text-gray-800">{apolice.dados_adicionais.marca}</p></div>}
+                        {apolice.dados_adicionais.modelo && <div><p className="text-xs text-gray-400 uppercase">Modelo</p><p className="font-semibold text-gray-800">{apolice.dados_adicionais.modelo}</p></div>}
+                        {apolice.dados_adicionais.numero_serie && <div><p className="text-xs text-gray-400 uppercase">Série</p><p className="font-semibold text-gray-800">{apolice.dados_adicionais.numero_serie}</p></div>}
+                        {apolice.dados_adicionais.memoria_armazenamento && <div><p className="text-xs text-gray-400 uppercase">Armazenamento</p><p className="font-semibold text-gray-800">{apolice.dados_adicionais.memoria_armazenamento}</p></div>}
+                        {apolice.dados_adicionais.outros_detalhes && <div className="col-span-2"><p className="text-xs text-gray-400 uppercase">Outros</p><p className="font-semibold text-gray-800">{apolice.dados_adicionais.outros_detalhes}</p></div>}
+                      </CardContent>
                     </Card>
                   )}
 

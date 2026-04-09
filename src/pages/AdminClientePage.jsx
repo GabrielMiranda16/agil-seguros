@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, Building, ChevronRight, AlertTriangle, Heart, Car, Plane, Home, PawPrint, Building2, Package, Monitor, Loader2, Users, FileText, Trash2, Edit } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { applyCnpjMask, applyCpfMask } from '@/lib/masks';
 
@@ -37,6 +38,7 @@ const SEGMENTOS_CONFIG = [
 const AdminClientePage = () => {
   const { matrizId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -73,7 +75,7 @@ const AdminClientePage = () => {
 
         setMatriz(matrizEncontrada);
         setFiliais(filiaisData);
-        setBeneficiarios(todosBeneficios.filter(b => todasIds.includes(b.empresa_id) && !b.data_exclusao));
+        setBeneficiarios(todosBeneficios.filter(b => todasIds.includes(Number(b.empresa_id)) && !b.data_exclusao));
         setSolicitacoes(todasSolicitacoes.filter(s => todasIds.includes(Number(s.empresa_id))));
 
         try {
@@ -90,7 +92,7 @@ const AdminClientePage = () => {
       }
     };
     load();
-  }, [matrizId]);
+  }, [matrizId, location.key]);
 
   const getSolicitacoesPendentes = (empresaId) =>
     solicitacoes.filter(s => Number(s.empresa_id) === empresaId && (s.status === 'PENDENTE' || s.status === 'EM PROCESSAMENTO')).length;
@@ -135,8 +137,24 @@ const AdminClientePage = () => {
 
   const handleDeleteFilial = async (filialId) => {
     try {
+      // Delete storage files for apolices with contrato_url
+      const filialApolices = apolices.filter(a => Number(a.empresa_id) === filialId && a.contrato_url);
+      if (filialApolices.length > 0) {
+        const paths = filialApolices
+          .map(a => a.contrato_url.split('/apolices-contratos/')[1])
+          .filter(Boolean);
+        if (paths.length > 0) {
+          await supabaseClient.storage.from('apolices-contratos').remove(paths);
+        }
+      }
+
+      await supabaseClient.from('coparticipacoes').delete().eq('empresa_id', filialId);
+      await supabaseClient.from('solicitacoes').delete().eq('empresa_id', filialId);
+      await supabaseClient.from('apolices').delete().eq('empresa_id', filialId);
+      await supabaseClient.from('beneficiarios').delete().eq('empresa_id', filialId);
       await empresasService.deleteEmpresa(filialId);
       setFiliais(prev => prev.filter(f => f.id !== filialId));
+      setApolices(prev => prev.filter(a => Number(a.empresa_id) !== filialId));
       toast({ title: 'Filial removida.' });
     } catch {
       toast({ variant: 'destructive', title: 'Erro', description: 'Erro ao remover filial.' });
@@ -167,11 +185,11 @@ const AdminClientePage = () => {
 
           {/* Breadcrumb */}
           <div className="flex items-center gap-2">
-            <button onClick={() => navigate('/admin')} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 transition-colors">
+            <button onClick={() => navigate('/admin')} className="flex items-center gap-1 text-sm text-white/60 hover:text-white transition-colors">
               <ArrowLeft className="h-4 w-4" /> Clientes
             </button>
-            <ChevronRight className="h-4 w-4 text-gray-300" />
-            <span className="text-sm font-medium text-gray-800">{matriz.nome_fantasia || matriz.razao_social}</span>
+            <ChevronRight className="h-4 w-4 text-white/30" />
+            <span className="text-sm font-medium text-white">{matriz.nome_fantasia || matriz.razao_social}</span>
           </div>
 
           {/* Client Info Card */}

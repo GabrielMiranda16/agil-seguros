@@ -62,6 +62,7 @@ export const apolicesService = {
       const { data, error } = await supabase
         .from('apolices')
         .select('*, empresas(razao_social, nome_fantasia, cnpj)')
+        .eq('ativo', true)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -123,7 +124,7 @@ export const apolicesService = {
     try {
       const { error } = await supabase
         .from('apolices')
-        .update({ ativo: false })
+        .delete()
         .eq('id', id);
 
       if (error) throw error;
@@ -156,11 +157,33 @@ export const apolicesService = {
     }
   },
 
+  async deleteContrato(apoliceId, contratoUrl) {
+    try {
+      if (contratoUrl) {
+        const bucketPath = contratoUrl.split('/apolices-contratos/')[1];
+        if (bucketPath) {
+          await supabase.storage.from('apolices-contratos').remove([bucketPath]);
+        }
+      }
+      const { data, error } = await supabase
+        .from('apolices')
+        .update({ contrato_url: null })
+        .eq('id', apoliceId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Erro ao excluir contrato:', error);
+      throw new Error('Não foi possível excluir o contrato.');
+    }
+  },
+
   getStatusApolice(vigencia_fim) {
     if (!vigencia_fim) return { label: 'Sem vigência', color: 'gray' };
     const hoje = new Date();
     const fim = new Date(vigencia_fim);
-    const diasRestantes = Math.ceil((fim - hoje) / (1000 * 60 * 60 * 24));
+    const diasRestantes = Math.floor((fim - hoje) / (1000 * 60 * 60 * 24));
 
     if (diasRestantes < 0)  return { label: 'Vencida',           color: 'red',    dias: diasRestantes };
     if (diasRestantes <= 30) return { label: 'Vencendo em breve', color: 'yellow', dias: diasRestantes };

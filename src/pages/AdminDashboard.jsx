@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { useToast } from '@/components/ui/use-toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/contexts/CompanyContext';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -12,10 +12,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Skeleton } from '@/components/ui/skeleton';
-import { Building, Plus, Trash2, ArrowRight, Search, Loader2, GitBranchPlus, Edit, Users, FileText, AlertTriangle, X, User, Building2 } from 'lucide-react';
+import { Building, Plus, Trash2, ArrowRight, Search, Loader2, GitBranchPlus, Edit, Users, FileText, AlertTriangle, X, User, Building2, CheckCircle2, XCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { applyCnpjMask, applyCpfMask, applyCepMask } from '@/lib/masks';
 import { generateTempPassword, sendWelcomeEmail } from '@/services/emailService';
+import { validatePasswordStrength } from '@/lib/userValidator';
 
 import { empresasService } from '@/services/empresasService';
 import { beneficiariosService } from '@/services/beneficiariosService';
@@ -27,6 +28,7 @@ import { supabaseClient } from '@/lib/supabase';
 const AdminDashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { setSelectedCompanyId } = useCompany();
 
@@ -81,7 +83,7 @@ const AdminDashboard = () => {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [location.key]);
 
   const matrizes = useMemo(() => empresas.filter(e => e.tipo === 'MATRIZ'), [empresas]);
   const filiais = useMemo(() => empresas.filter(e => e.tipo === 'FILIAL'), [empresas]);
@@ -120,13 +122,13 @@ const AdminDashboard = () => {
     const empresaMatches = matrizes.filter(e =>
       (e.nome_fantasia || '').toLowerCase().includes(term) ||
       (e.razao_social || '').toLowerCase().includes(term) ||
-      (termNum && e.cnpj.replace(/\D/g, '').includes(termNum))
+      (termNum && (e.cnpj || '').replace(/\D/g, '').includes(termNum))
     );
 
     const filialMatches = filiais.filter(f =>
       (f.nome_fantasia || '').toLowerCase().includes(term) ||
       (f.razao_social || '').toLowerCase().includes(term) ||
-      (termNum && f.cnpj.replace(/\D/g, '').includes(termNum))
+      (termNum && (f.cnpj || '').replace(/\D/g, '').includes(termNum))
     );
 
     const benefMatches = beneficiarios.filter(b =>
@@ -217,9 +219,9 @@ const AdminDashboard = () => {
     if (empresas.some(emp => emp.cnpj.replace(/\D/g, '') === cnpj.replace(/\D/g, '')))
       return toast({ variant: 'destructive', title: 'Erro', description: tipoPessoa === 'PF' ? 'CPF já cadastrado.' : 'CNPJ já cadastrado.' });
 
-    // Monta endereço completo para PF
+    // Monta endereço completo para PF e PJ
     let endereco_completo = newEmpresa.endereco_completo;
-    if (tipoPessoa === 'PF' && rua) {
+    if (rua) {
       endereco_completo = [
         rua,
         numero && `nº ${numero}`,
@@ -290,12 +292,20 @@ const AdminDashboard = () => {
       return toast({ variant: 'destructive', title: 'Erro', description: 'E-mail já em uso.' });
     if (empresas.some(emp => emp.cnpj?.replace(/\D/g, '') === cnpj.replace(/\D/g, '') && emp.id !== editingEmpresa.id))
       return toast({ variant: 'destructive', title: 'Erro', description: 'CPF/CNPJ já cadastrado em outro cliente.' });
+    if (senha_cliente) {
+      const pwErrors = validatePasswordStrength(senha_cliente);
+      if (pwErrors.length > 0) return toast({ variant: 'destructive', title: 'Senha fraca', description: pwErrors[0] });
+    }
     setIsSubmitting(true);
     try {
       const updatePayload = { email: email_cliente };
       if (senha_cliente) updatePayload.password = senha_cliente;
       await authService.updateUser(clientUser.id, updatePayload);
-      await empresasService.updateEmpresa(editingEmpresa.id, { email_cliente, cnpj });
+      // Use direct supabase call to avoid cleanEmpresaData nullifying required fields
+      const { error: empUpdateError } = await supabaseClient.from('empresas')
+        .update({ email_cliente, cnpj: cnpj.replace(/\D/g, '') })
+        .eq('id', editingEmpresa.id);
+      if (empUpdateError) throw empUpdateError;
       setUsers(prev => prev.map(u => u.id === clientUser.id ? { ...u, ...updatePayload } : u));
       setEmpresas(prev => prev.map(e => e.id === editingEmpresa.id ? { ...e, email_cliente, cnpj } : e));
       toast({ title: 'Sucesso', description: 'Dados do cliente atualizados.' });
@@ -338,17 +348,47 @@ const AdminDashboard = () => {
 
   const deleteMatriz = async (id) => {
     if (!canManage) return;
-    if (filiais.some(f => f.empresa_matriz_id === id))
-      return toast({ variant: 'destructive', title: 'Ação Bloqueada', description: 'Exclua todas as filiais antes.' });
     try {
+      // Collect all empresa IDs (matriz + filiais)
+      const todasFiliais = empresas.filter(e => e.empresa_matriz_id === id);
+      const todasIds = [id, ...todasFiliais.map(f => f.id)];
+
+      // Delete storage files for apolices with contrato_url
+      const apolicesComContrato = apolices.filter(a => todasIds.includes(Number(a.empresa_id)) && a.contrato_url);
+      if (apolicesComContrato.length > 0) {
+        const paths = apolicesComContrato
+          .map(a => a.contrato_url.split('/apolices-contratos/')[1])
+          .filter(Boolean);
+        if (paths.length > 0) {
+          await supabaseClient.storage.from('apolices-contratos').remove(paths);
+        }
+      }
+
+      // Delete all related DB records for every empresa
+      for (const eid of todasIds) {
+        await supabaseClient.from('coparticipacoes').delete().eq('empresa_id', eid);
+        await supabaseClient.from('solicitacoes').delete().eq('empresa_id', eid);
+        await supabaseClient.from('apolices').delete().eq('empresa_id', eid);
+        await supabaseClient.from('beneficiarios').delete().eq('empresa_id', eid);
+      }
+
+      // Delete user linked to this matriz
       const userToDelete = users.find(u => u.empresa_matriz_id === id);
       if (userToDelete) await authService.deleteUser(userToDelete.id);
+
+      // Delete filiais then matriz
+      for (const filial of todasFiliais) {
+        await empresasService.deleteEmpresa(filial.id);
+      }
       await empresasService.deleteEmpresa(id);
-      setEmpresas(empresas.filter(e => e.id !== id));
+
+      setEmpresas(empresas.filter(e => e.id !== id && e.empresa_matriz_id !== id));
       setUsers(users.filter(u => u.empresa_matriz_id !== id));
-      setBeneficiarios(beneficiarios.filter(b => b.empresa_id !== id));
-      toast({ title: 'Cliente excluído.' });
+      setBeneficiarios(beneficiarios.filter(b => !todasIds.includes(Number(b.empresa_id))));
+      setApolices(apolices.filter(a => !todasIds.includes(Number(a.empresa_id))));
+      toast({ title: 'Cliente excluído com sucesso.' });
     } catch (error) {
+      console.error(error);
       toast({ variant: 'destructive', title: 'Erro', description: 'Erro ao excluir.' });
     }
   };
@@ -586,7 +626,51 @@ const AdminDashboard = () => {
                   <div><Label htmlFor="razao_social">Razão Social *</Label><Input id="razao_social" value={newEmpresa.razao_social} onChange={e => handleInputChange(e, setNewEmpresa)} /></div>
                   <div><Label htmlFor="nome_fantasia">Nome Fantasia</Label><Input id="nome_fantasia" value={newEmpresa.nome_fantasia} onChange={e => handleInputChange(e, setNewEmpresa)} /></div>
                   <div><Label htmlFor="cnpj">CNPJ *</Label><Input id="cnpj" value={newEmpresa.cnpj} placeholder="00.000.000/0000-00" onChange={e => handleInputChange(e, setNewEmpresa, false)} /></div>
-                  <div><Label htmlFor="endereco_completo">Endereço</Label><Input id="endereco_completo" value={newEmpresa.endereco_completo} onChange={e => handleInputChange(e, setNewEmpresa)} /></div>
+                  <div>
+                    <Label htmlFor="cep">CEP</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="cep"
+                        value={newEmpresa.cep}
+                        placeholder="00000-000"
+                        maxLength={9}
+                        onChange={e => handleInputChange(e, setNewEmpresa)}
+                        onBlur={() => buscarCep(newEmpresa.cep)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => buscarCep(newEmpresa.cep)}
+                        disabled={isCepLoading}
+                        className="px-3 py-2 rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-gray-600 flex items-center gap-1 text-sm"
+                      >
+                        {isCepLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="numero">Número</Label>
+                    <Input id="numero" value={newEmpresa.numero} placeholder="123" onChange={e => handleInputChange(e, setNewEmpresa)} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label htmlFor="rua">Rua</Label>
+                    <Input id="rua" value={newEmpresa.rua} readOnly className="bg-gray-50 text-gray-600" />
+                  </div>
+                  <div>
+                    <Label htmlFor="complemento">Complemento</Label>
+                    <Input id="complemento" value={newEmpresa.complemento} placeholder="Apto, bloco..." onChange={e => handleInputChange(e, setNewEmpresa)} />
+                  </div>
+                  <div>
+                    <Label htmlFor="bairro">Bairro</Label>
+                    <Input id="bairro" value={newEmpresa.bairro} readOnly className="bg-gray-50 text-gray-600" />
+                  </div>
+                  <div>
+                    <Label htmlFor="cidade">Cidade</Label>
+                    <Input id="cidade" value={newEmpresa.cidade} readOnly className="bg-gray-50 text-gray-600" />
+                  </div>
+                  <div>
+                    <Label htmlFor="estado">Estado</Label>
+                    <Input id="estado" value={newEmpresa.estado} readOnly className="bg-gray-50 text-gray-600" />
+                  </div>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -687,7 +771,30 @@ const AdminDashboard = () => {
                   <Input id="cnpj" value={editingEmpresa.cnpj || ''} onChange={e => handleInputChange(e, setEditingEmpresa)} />
                 </div>
                 <div><Label htmlFor="email_cliente">E-mail *</Label><Input id="email_cliente" type="email" value={editingEmpresa.email_cliente} onChange={e => handleInputChange(e, setEditingEmpresa)} /></div>
-                <div><Label htmlFor="senha_cliente">Nova Senha (opcional)</Label><Input id="senha_cliente" type="password" placeholder="Deixe em branco para manter a atual" value={editingEmpresa.senha_cliente} onChange={e => handleInputChange(e, setEditingEmpresa)} /></div>
+                <div>
+                  <Label htmlFor="senha_cliente">Nova Senha (opcional)</Label>
+                  <Input id="senha_cliente" type="password" placeholder="Deixe em branco para manter a atual" value={editingEmpresa.senha_cliente} onChange={e => handleInputChange(e, setEditingEmpresa)} />
+                  {editingEmpresa.senha_cliente && (() => {
+                    const pwd = editingEmpresa.senha_cliente;
+                    const checks = [
+                      { label: 'Mínimo 6 caracteres', ok: pwd.length >= 6 },
+                      { label: '1 número', ok: /[0-9]/.test(pwd) },
+                      { label: '1 letra minúscula', ok: /[a-z]/.test(pwd) },
+                      { label: '1 letra maiúscula', ok: /[A-Z]/.test(pwd) },
+                      { label: '1 caractere especial (!@#$%...)', ok: /[^a-zA-Z0-9]/.test(pwd) },
+                    ];
+                    return (
+                      <div className="mt-2 space-y-1">
+                        {checks.map(c => (
+                          <div key={c.label} className="flex items-center gap-1.5 text-xs">
+                            {c.ok ? <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" /> : <XCircle className="h-3.5 w-3.5 text-gray-300 shrink-0" />}
+                            <span className={c.ok ? 'text-green-600' : 'text-gray-400'}>{c.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsEditEmpresaModalOpen(false)}>Cancelar</Button>

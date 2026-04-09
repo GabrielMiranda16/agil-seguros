@@ -112,7 +112,7 @@ const CoparticipacaoClientePage = () => {
   }, [filteredCoparticipacoes]);
 
   const getBeneficiarioName = (id) => {
-    const ben = beneficiarios.find(b => b.id === id);
+    const ben = beneficiarios.find(b => String(b.id) === String(id));
     return ben ? ben.nome_completo : 'Desconhecido';
   };
 
@@ -128,7 +128,7 @@ const CoparticipacaoClientePage = () => {
     }
 
     const doc = new jsPDF();
-    const empresaAtual = empresas.find(e => e.id === parseInt(empresaId));
+    const empresaAtual = empresas.find(e => String(e.id) === String(empresaId));
     const mesLabel = getMonthName(selectedMonth);
 
     doc.setFontSize(18);
@@ -188,7 +188,7 @@ const CoparticipacaoClientePage = () => {
       return;
     }
 
-    const empresaAtual = empresas.find(e => e.id === parseInt(empresaId));
+    const empresaAtual = empresas.find(e => String(e.id) === String(empresaId));
 
     const dataToExport = filteredCoparticipacoes.map(item => ({
       "Beneficiário Titular": getBeneficiarioName(item.beneficiario_id),
