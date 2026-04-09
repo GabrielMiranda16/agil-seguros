@@ -239,7 +239,7 @@ const AdminSegmentoPage = () => {
           if (!editingApolice) {
             await apolicesService.deleteApolice(saved.id);
           }
-          throw new Error('Falha no upload do PDF. A apólice não foi salva.');
+          throw new Error(`Upload falhou: ${uploadErr.message}`);
         }
       } else if (!editingApolice) {
         setApolices(prev => [saved, ...prev]);
