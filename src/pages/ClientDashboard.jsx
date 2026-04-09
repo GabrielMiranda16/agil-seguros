@@ -496,7 +496,7 @@ const ClientDashboard = () => {
       }
       setIsModalOpen(false);
     } catch (error) {
-       toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao salvar beneficiário.' });
+       toast({ variant: 'destructive', title: 'Erro ao salvar beneficiário', description: error?.message || JSON.stringify(error) });
     } finally {
        setIsSubmitting(false);
     }
@@ -508,7 +508,7 @@ const ClientDashboard = () => {
         setBeneficiarios(beneficiarios.filter(b => b.id !== id));
         toast({ title: 'Sucesso', description: 'Beneficiário excluído permanentemente.' });
     } catch(error) {
-        toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao excluir beneficiário.' });
+        toast({ variant: 'destructive', title: 'Erro ao excluir beneficiário', description: error?.message || JSON.stringify(error) });
     }
   };
 
