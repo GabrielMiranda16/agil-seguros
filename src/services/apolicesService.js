@@ -153,7 +153,7 @@ export const apolicesService = {
       return data.publicUrl;
     } catch (error) {
       console.error('Erro ao fazer upload do contrato:', error);
-      throw new Error('Não foi possível fazer o upload do contrato.');
+      throw new Error(error?.message || error?.error_description || JSON.stringify(error) || 'Não foi possível fazer o upload do contrato.');
     }
   },
 
