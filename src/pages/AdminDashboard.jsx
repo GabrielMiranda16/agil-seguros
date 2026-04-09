@@ -774,13 +774,13 @@ const AdminDashboard = () => {
                 <div>
                   <Label htmlFor="senha_cliente">Nova Senha (opcional)</Label>
                   <Input id="senha_cliente" type="password" placeholder="Deixe em branco para manter a atual" value={editingEmpresa.senha_cliente} onChange={e => handleInputChange(e, setEditingEmpresa)} />
-                  {editingEmpresa.senha_cliente && (() => {
-                    const pwd = editingEmpresa.senha_cliente;
+                  {(() => {
+                    const pwd = editingEmpresa.senha_cliente || '';
                     const checks = [
                       { label: 'Mínimo 6 caracteres', ok: pwd.length >= 6 },
-                      { label: '1 número', ok: /[0-9]/.test(pwd) },
-                      { label: '1 letra minúscula', ok: /[a-z]/.test(pwd) },
                       { label: '1 letra maiúscula', ok: /[A-Z]/.test(pwd) },
+                      { label: '1 letra minúscula', ok: /[a-z]/.test(pwd) },
+                      { label: '1 número', ok: /[0-9]/.test(pwd) },
                       { label: '1 caractere especial (!@#$%...)', ok: /[^a-zA-Z0-9]/.test(pwd) },
                     ];
                     return (
