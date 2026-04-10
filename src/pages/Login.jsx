@@ -109,7 +109,7 @@ const LoginPage = () => {
           <img
             src="https://storage.googleapis.com/hostinger-horizons-assets-prod/bcb47250-76a3-434c-9312-56a9dba14a6f/247eb5219c397bb2ed2bcac42f39a442.png"
             alt="Ágil Seguros"
-            className="h-24 w-auto object-contain mb-6"
+            className="h-16 sm:h-24 w-auto object-contain mb-4"
           />
 
           <Card className="w-full bg-white/90 border-0 backdrop-blur-md shadow-2xl">

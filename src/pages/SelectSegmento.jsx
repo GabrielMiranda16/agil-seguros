@@ -220,7 +220,7 @@ const SelectSegmento = () => {
       <div className="min-h-screen bg-soft-gradient flex flex-col">
 
         {/* Header */}
-        <header className="z-40" style={{ background: 'transparent' }}>
+        <header className="z-40 sticky top-0" style={{ background: 'transparent' }}>
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16 sm:h-24">
               <img src={logoUrl} alt="Ágil Seguros" className="h-12 sm:h-24 w-auto object-contain" />
@@ -313,7 +313,7 @@ const SelectSegmento = () => {
             <motion.div
               initial="hidden" animate="visible"
               variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
-              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4"
+              className="grid grid-cols-2 md:grid-cols-4 gap-4"
             >
               {segmentosDisponiveis.map((seg) => {
                 const config = SEGMENTO_CONFIG[seg];
