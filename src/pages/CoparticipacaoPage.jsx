@@ -315,13 +315,13 @@ const CoparticipacaoPage = () => {
     doc.setFontSize(11);
     doc.setTextColor(100);
     doc.text(`Período: ${getMonthName(selectedMonth)} de ${selectedYear}`, 14, 22);
-    const tableColumn = ["Mês", "Beneficiário", "CNPJ", "Quem Utilizou", "CPF Utilizador", "Valor (R$)", "Descrição"];
+    const tableColumn = ["Mês", "Beneficiário", "CNPJ/CPF", "Quem Utilizou", "CPF Utilizador", "Valor (R$)", "Descrição"];
     const tableRows = data.map(item => {
       const emp = empresas.find(e => e.id === item.empresa_id);
       return [
         item.competencia,
         getBeneficiarioName(item.beneficiario_id),
-        emp?.cnpj || '-',
+        emp?.cnpj || emp?.cpf || '-',
         item.nome_quem_utilizou || '-',
         item.cpf_quem_utilizou || '-',
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.valor),
@@ -344,7 +344,7 @@ const CoparticipacaoPage = () => {
       return {
         "Mês": item.competencia,
         "Beneficiário": getBeneficiarioName(item.beneficiario_id),
-        "CNPJ": emp?.cnpj || '-',
+        "CNPJ/CPF": emp?.cnpj || emp?.cpf || '-',
         "Quem Utilizou": item.nome_quem_utilizou || '-',
         "CPF Utilizador": item.cpf_quem_utilizou || '-',
         "Valor": item.valor,
@@ -533,7 +533,7 @@ const CoparticipacaoPage = () => {
 
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="cnpj_vinculado">CNPJ (Vinculado)</Label>
+                <Label htmlFor="cnpj_vinculado">CNPJ/CPF (Vinculado)</Label>
                 <Input id="cnpj_vinculado" value={formData.cnpj || ''} readOnly disabled className="bg-gray-100 text-gray-600" />
               </div>
 
