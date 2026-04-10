@@ -98,7 +98,7 @@ const LoginPage = () => {
         <title>Login - Ágil Seguros</title>
         <meta name="description" content="Acesse sua conta no sistema Ágil Seguros." />
       </Helmet>
-      <div className="h-screen flex flex-col items-center justify-center p-4 bg-soft-gradient overflow-hidden">
+      <div className="flex flex-col items-center justify-center p-4 bg-soft-gradient overflow-hidden" style={{ height: '100dvh' }}>
         <motion.div
           initial={{ opacity: 0, y: -20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -109,15 +109,15 @@ const LoginPage = () => {
           <img
             src="https://storage.googleapis.com/hostinger-horizons-assets-prod/bcb47250-76a3-434c-9312-56a9dba14a6f/247eb5219c397bb2ed2bcac42f39a442.png"
             alt="Ágil Seguros"
-            className="h-16 sm:h-24 w-auto object-contain mb-4"
+            className="h-14 sm:h-24 w-auto object-contain mb-3"
           />
 
           <Card className="w-full bg-white/90 border-0 backdrop-blur-md shadow-2xl">
-            <CardHeader className="text-center pb-2">
+            <CardHeader className="text-center pt-4 pb-2">
               <CardDescription className="text-gray-500">Bem-vindo ao app da Ágil Seguros</CardDescription>
             </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
+            <CardContent className="pb-4">
+              <form onSubmit={handleSubmit} className="space-y-3">
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-gray-700">Email</Label>
                   <Input
