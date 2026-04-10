@@ -206,26 +206,55 @@ const ApoliceDashboard = () => {
 
                   <Card>
                     <CardHeader><CardTitle className="flex items-center gap-2 text-base"><FileText className="h-4 w-4" /> Dados da Apólice</CardTitle></CardHeader>
-                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      <div>
-                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Número da Apólice</p>
-                        <p className="font-semibold text-gray-800">{apolice.numero_apolice || '—'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Seguradora</p>
-                        <div className="flex items-center gap-2">
-                          <Building className="h-4 w-4 text-gray-400" />
-                          <p className="font-semibold text-gray-800">{apolice.seguradora || '—'}</p>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div>
+                          <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Status</p>
+                          <Badge className={statusCfg.badge}><StatusIcon className="h-3 w-3 mr-1" />{statusCfg.label}</Badge>
                         </div>
+                        <div>
+                          <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Segmento</p>
+                          <p className="font-semibold text-gray-800">{segLabel}</p>
+                        </div>
+                        {!isSVD && (
+                          <>
+                            <div>
+                              <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Número da Apólice</p>
+                              <p className="font-semibold text-gray-800">{apolice.numero_apolice || '—'}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Seguradora</p>
+                              <div className="flex items-center gap-2">
+                                <Building className="h-4 w-4 text-gray-400" />
+                                <p className="font-semibold text-gray-800">{apolice.seguradora || '—'}</p>
+                              </div>
+                            </div>
+                          </>
+                        )}
                       </div>
-                      <div>
-                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Status</p>
-                        <Badge className={statusCfg.badge}><StatusIcon className="h-3 w-3 mr-1" />{statusCfg.label}</Badge>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Segmento</p>
-                        <p className="font-semibold text-gray-800">{segLabel}</p>
-                      </div>
+                      {isSVD && (apolice.dados_adicionais?.sub_apolices || []).length > 0 && (
+                        <div className="space-y-2 border-t pt-4">
+                          {apolice.dados_adicionais.sub_apolices.map((sub, i) => {
+                            const tipoLabel = sub.tipo === 'saude' ? 'Saúde' : sub.tipo === 'vida' ? 'Vida' : sub.tipo === 'odonto' ? 'Odonto' : sub.tipo;
+                            return (
+                              <div key={i} className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm p-3 bg-gray-50 rounded-lg">
+                                <div>
+                                  <p className="text-xs text-gray-400 uppercase mb-1">Tipo</p>
+                                  <p className="font-semibold text-gray-800">{tipoLabel || '—'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-400 uppercase mb-1">Número da Apólice</p>
+                                  <p className="font-semibold text-gray-800">{sub.numero || '—'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-400 uppercase mb-1">Seguradora</p>
+                                  <p className="font-semibold text-gray-800">{sub.seguradora || '—'}</p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
 
@@ -353,33 +382,33 @@ const ApoliceDashboard = () => {
                     </Card>
                   )}
 
-                  {isSVD ? (
+                  {isSVD && (apolice.dados_adicionais?.sub_apolices || []).length > 0 && (
                     <Card>
                       <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Download className="h-4 w-4" /> Contratos</CardTitle></CardHeader>
                       <CardContent className="space-y-3">
-                        {[
-                          { label: 'Saúde', numKey: 'numero_saude', segKey: 'seguradora_saude', urlKey: 'contrato_saude_url' },
-                          { label: 'Vida',  numKey: 'numero_vida',  segKey: 'seguradora_vida',  urlKey: 'contrato_vida_url'  },
-                          { label: 'Odonto',numKey: 'numero_odonto',segKey: 'seguradora_odonto',urlKey: 'contrato_odonto_url'},
-                        ].map(({ label, numKey, segKey, urlKey }) => (
-                          <div key={label} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
-                            <div>
-                              <p className="text-sm font-semibold text-gray-800">{label}</p>
-                              {apolice.dados_adicionais?.[segKey] && <p className="text-xs text-gray-500">{apolice.dados_adicionais[segKey]}</p>}
-                              {apolice.dados_adicionais?.[numKey] && <p className="text-xs text-gray-400">Nº {apolice.dados_adicionais[numKey]}</p>}
+                        {apolice.dados_adicionais.sub_apolices.map((sub, i) => {
+                          const tipoLabel = sub.tipo === 'saude' ? 'Saúde' : sub.tipo === 'vida' ? 'Vida' : sub.tipo === 'odonto' ? 'Odonto' : sub.tipo;
+                          return (
+                            <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                              <div>
+                                <p className="text-sm font-semibold text-gray-800">{tipoLabel || `Apólice ${i + 1}`}</p>
+                                {sub.seguradora && <p className="text-xs text-gray-500">{sub.seguradora}</p>}
+                                {sub.numero && <p className="text-xs text-gray-400">Nº {sub.numero}</p>}
+                              </div>
+                              {sub.contrato_url ? (
+                                <a href={sub.contrato_url} target="_blank" rel="noopener noreferrer">
+                                  <Button size="sm" variant="outline"><Download className="mr-1.5 h-3.5 w-3.5" />PDF</Button>
+                                </a>
+                              ) : (
+                                <span className="text-xs text-gray-400">Sem contrato</span>
+                              )}
                             </div>
-                            {apolice.dados_adicionais?.[urlKey] ? (
-                              <a href={apolice.dados_adicionais[urlKey]} target="_blank" rel="noopener noreferrer">
-                                <Button size="sm" variant="outline"><Download className="mr-1.5 h-3.5 w-3.5" />PDF</Button>
-                              </a>
-                            ) : (
-                              <span className="text-xs text-gray-400">Sem contrato</span>
-                            )}
-                          </div>
-                        ))}
+                          );
+                        })}
                       </CardContent>
                     </Card>
-                  ) : (
+                  )}
+                  {!isSVD && (
                     <Card>
                       <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Download className="h-4 w-4" /> Contrato</CardTitle></CardHeader>
                       <CardContent>

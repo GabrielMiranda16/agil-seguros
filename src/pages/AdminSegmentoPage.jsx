@@ -79,6 +79,7 @@ const AdminSegmentoPage = () => {
   const [apoliceForm, setApoliceForm] = useState(emptyApoliceForm);
   const [apoliceEmpresaId, setApoliceEmpresaId] = useState('');
   const [contratoFile, setContratoFile] = useState(null);
+  const [subApolicesFiles, setSubApolicesFiles] = useState([]);
   const [dadosAdicionais, setDadosAdicionais] = useState({});
   const [isCepApoliceLoading, setIsCepApoliceLoading] = useState(false);
 
@@ -165,6 +166,7 @@ const AdminSegmentoPage = () => {
     setApoliceForm(emptyApoliceForm);
     setApoliceEmpresaId(String(empresaId));
     setContratoFile(null);
+    setSubApolicesFiles([]);
     setDadosAdicionais(emptyDadosAdicionais(segConfig?.key));
     setIsApoliceModalOpen(true);
   };
@@ -181,6 +183,7 @@ const AdminSegmentoPage = () => {
     });
     setApoliceEmpresaId(String(ap.empresa_id));
     setContratoFile(null);
+    setSubApolicesFiles([]);
     const defaultDados = emptyDadosAdicionais(segConfig?.key);
     setDadosAdicionais(ap.dados_adicionais ? { ...defaultDados, ...ap.dados_adicionais } : defaultDados);
     setIsApoliceModalOpen(true);
@@ -225,7 +228,31 @@ const AdminSegmentoPage = () => {
         // Don't add to state yet — wait for upload result
       }
 
-      if (contratoFile) {
+      // Upload SVD sub-apólice PDFs
+      let updatedDados = { ...dadosAdicionais };
+      if (isSVD) {
+        const subApolices = [...(dadosAdicionais.sub_apolices || [])];
+        let hasUpload = false;
+        for (let i = 0; i < subApolices.length; i++) {
+          if (subApolicesFiles[i]) {
+            const seg = `${subApolices[i].tipo || 'sub'}_${i}`;
+            const url = await apolicesService.uploadContratoSegmento(subApolicesFiles[i], saved.id, seg);
+            subApolices[i] = { ...subApolices[i], contrato_url: url };
+            hasUpload = true;
+          }
+        }
+        if (hasUpload) {
+          updatedDados.sub_apolices = subApolices;
+          const updated = await apolicesService.updateApolice(saved.id, { dados_adicionais: updatedDados });
+          if (editingApolice) {
+            setApolices(prev => prev.map(a => a.id === updated.id ? updated : a));
+          } else {
+            setApolices(prev => [updated, ...prev]);
+          }
+        } else if (!editingApolice) {
+          setApolices(prev => [saved, ...prev]);
+        }
+      } else if (contratoFile) {
         try {
           const url = await apolicesService.uploadContrato(contratoFile, saved.id);
           const updated = await apolicesService.updateApolice(saved.id, { contrato_url: url });
@@ -235,10 +262,7 @@ const AdminSegmentoPage = () => {
             setApolices(prev => [updated, ...prev]);
           }
         } catch (uploadErr) {
-          // If new apólice, roll back the creation
-          if (!editingApolice) {
-            await apolicesService.deleteApolice(saved.id);
-          }
+          if (!editingApolice) await apolicesService.deleteApolice(saved.id);
           throw new Error(`Upload falhou: ${uploadErr.message}`);
         }
       } else if (!editingApolice) {
@@ -555,11 +579,103 @@ const AdminSegmentoPage = () => {
               </>
             )}
 
-            {/* SVD: allow PDF upload too */}
+            {/* SVD: sub-apólices dinâmicas */}
             {isSVD && (
-              <div>
-                <Label>Contrato (PDF)</Label>
-                <Input type="file" accept=".pdf" className="mt-1" onChange={e => setContratoFile(e.target.files?.[0] || null)} />
+              <div className="space-y-3 border-t pt-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-semibold">Apólices (Saúde / Vida / Odonto)</Label>
+                  <Button
+                    type="button" size="sm" variant="outline"
+                    disabled={(dadosAdicionais.sub_apolices || []).length >= 3}
+                    onClick={() => setDadosAdicionais(p => ({
+                      ...p,
+                      sub_apolices: [...(p.sub_apolices || []), { tipo: '', numero: '', seguradora: '' }]
+                    }))}
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar
+                  </Button>
+                </div>
+                {(dadosAdicionais.sub_apolices || []).length === 0 && (
+                  <p className="text-xs text-gray-400 text-center py-2">
+                    Clique em "Adicionar" para incluir apólices de Saúde, Vida e/ou Odonto
+                  </p>
+                )}
+                {(dadosAdicionais.sub_apolices || []).map((sub, i) => (
+                  <div key={i} className="p-3 border rounded-lg bg-gray-50 space-y-2 relative">
+                    <button
+                      type="button"
+                      className="absolute top-2 right-2 text-gray-400 hover:text-red-500"
+                      onClick={() => setDadosAdicionais(p => ({ ...p, sub_apolices: p.sub_apolices.filter((_, idx) => idx !== i) }))}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <div>
+                        <Label className="text-xs">Tipo</Label>
+                        <select
+                          className="w-full mt-1 h-8 px-2 rounded-md border border-input bg-background text-sm"
+                          value={sub.tipo}
+                          onChange={e => setDadosAdicionais(p => {
+                            const arr = [...(p.sub_apolices || [])];
+                            arr[i] = { ...arr[i], tipo: e.target.value };
+                            return { ...p, sub_apolices: arr };
+                          })}
+                        >
+                          <option value="">Selecione...</option>
+                          <option value="saude">Saúde</option>
+                          <option value="vida">Vida</option>
+                          <option value="odonto">Odonto</option>
+                        </select>
+                      </div>
+                      <div>
+                        <Label className="text-xs">Nº Apólice</Label>
+                        <Input
+                          className="mt-1 h-8 text-sm"
+                          value={sub.numero || ''}
+                          onChange={e => setDadosAdicionais(p => {
+                            const arr = [...(p.sub_apolices || [])];
+                            arr[i] = { ...arr[i], numero: e.target.value };
+                            return { ...p, sub_apolices: arr };
+                          })}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Seguradora</Label>
+                        <Input
+                          className="mt-1 h-8 text-sm"
+                          value={sub.seguradora || ''}
+                          onChange={e => setDadosAdicionais(p => {
+                            const arr = [...(p.sub_apolices || [])];
+                            arr[i] = { ...arr[i], seguradora: e.target.value };
+                            return { ...p, sub_apolices: arr };
+                          })}
+                          placeholder="Ex: SulAmérica"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs">
+                        {sub.tipo ? `Contrato ${sub.tipo === 'saude' ? 'Saúde' : sub.tipo === 'vida' ? 'Vida' : 'Odonto'} (PDF)` : 'Contrato (PDF)'}
+                      </Label>
+                      <Input
+                        type="file" accept=".pdf" className="mt-1 h-8 text-sm"
+                        onChange={e => {
+                          const file = e.target.files?.[0] || null;
+                          setSubApolicesFiles(prev => {
+                            const arr = [...prev];
+                            arr[i] = file;
+                            return arr;
+                          });
+                        }}
+                      />
+                      {sub.contrato_url && (
+                        <a href={sub.contrato_url} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline mt-1 flex items-center gap-1">
+                          <FileText className="h-3 w-3" /> PDF atual
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 
