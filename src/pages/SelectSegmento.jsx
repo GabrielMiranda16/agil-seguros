@@ -220,7 +220,7 @@ const SelectSegmento = () => {
       <div className="min-h-screen bg-soft-gradient flex flex-col">
 
         {/* Header */}
-        <header className="z-40" style={{ background: 'transparent' }}>
+        <header className="z-40 sticky top-0 bg-soft-gradient">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16 sm:h-24">
               <img src={logoUrl} alt="Ágil Seguros" className="h-12 sm:h-24 w-auto object-contain" />
