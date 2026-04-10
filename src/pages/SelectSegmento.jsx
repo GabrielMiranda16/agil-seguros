@@ -220,7 +220,7 @@ const SelectSegmento = () => {
       <div className="min-h-screen bg-soft-gradient flex flex-col">
 
         {/* Header */}
-        <header className="z-40 fixed top-0 left-0 right-0" style={{ background: 'transparent' }}>
+        <header className="z-40" style={{ background: 'transparent' }}>
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16 sm:h-24">
               <img src={logoUrl} alt="Ágil Seguros" className="h-12 sm:h-24 w-auto object-contain" />
@@ -296,7 +296,7 @@ const SelectSegmento = () => {
         </header>
 
         {/* Content */}
-        <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 pt-20 sm:pt-28">
+        <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
           <h1 className="text-2xl font-bold text-white mb-1">Meus Seguros</h1>
           {empresaNome && <p className="text-white/70 text-sm mb-6">{empresaNome}</p>}
 
