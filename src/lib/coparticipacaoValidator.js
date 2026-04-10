@@ -14,6 +14,7 @@ export const cleanCoparticipacaoData = (data) => {
     descricao: text(data.descricao),
     nome_quem_utilizou: text(data.nome_quem_utilizou),
     cpf_quem_utilizou: text(data.cpf_quem_utilizou),
+    tipo: text(data.tipo) || 'saude',
     data_registro: data.data_registro ? text(data.data_registro) : new Date().toISOString(),
   };
 };
