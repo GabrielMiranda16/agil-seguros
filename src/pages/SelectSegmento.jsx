@@ -217,7 +217,7 @@ const SelectSegmento = () => {
   return (
     <>
       <Helmet><title>Meus Seguros - Ágil Seguros</title></Helmet>
-      <div className="min-h-screen bg-soft-gradient flex flex-col">
+      <div className="bg-soft-gradient flex flex-col overflow-auto" style={{ height: '100dvh' }}>
 
         {/* Header */}
         <header className="z-40" style={{ background: 'transparent' }}>
