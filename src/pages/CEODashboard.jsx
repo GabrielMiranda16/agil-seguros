@@ -138,22 +138,14 @@ const CEODashboard = () => {
     const currentYear = new Date().getFullYear();
     const currentMonth = `${currentYear}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
 
-    // Valor total de prêmios das apólices (soma valor_premio + prêmios por segmento SVD em dados_adicionais)
-    const valorTotalApolices = apolices.reduce((acc, ap) => {
-      let total = Number(ap.valor_premio) || 0;
-      if (ap.segmento === 'SAUDE_VIDA_ODONTO' && ap.dados_adicionais) {
-        total += Number(ap.dados_adicionais.valor_saude) || 0;
-        total += Number(ap.dados_adicionais.valor_vida) || 0;
-        total += Number(ap.dados_adicionais.valor_odonto) || 0;
+    // Valor total de prêmios: não-SVD usa valor_premio, SVD soma sub_apolices.valor_premio
+    const getApoliceTotal = (ap) => {
+      if (ap.segmento === 'SAUDE_VIDA_ODONTO') {
+        return (ap.dados_adicionais?.sub_apolices || []).reduce((s, sub) => s + (Number(sub.valor_premio) || 0), 0);
       }
-      return acc + total;
-    }, 0);
-
-    // Prêmio por segmento SVD
-    const svdApolices = apolices.filter(ap => ap.segmento === 'SAUDE_VIDA_ODONTO');
-    const valorSaude = svdApolices.reduce((acc, ap) => acc + (Number(ap.dados_adicionais?.valor_saude) || 0), 0);
-    const valorVida = svdApolices.reduce((acc, ap) => acc + (Number(ap.dados_adicionais?.valor_vida) || 0), 0);
-    const valorOdonto = svdApolices.reduce((acc, ap) => acc + (Number(ap.dados_adicionais?.valor_odonto) || 0), 0);
+      return Number(ap.valor_premio) || 0;
+    };
+    const valorTotalApolices = apolices.reduce((acc, ap) => acc + getApoliceTotal(ap), 0);
 
     return {
       totalEmpresas: empresas.length,
@@ -162,24 +154,20 @@ const CEODashboard = () => {
       totalAdmins: admins.length,
       solicitacoesPendentes: solicitacoes.filter(s => s.status === 'PENDENTE').length,
       solicitacoesConcluidas: solicitacoes.filter(s => s.status === 'CONCLUIDA').length,
-      coparticipacoesMes: coparticipacoes.filter(c => c.competencia === currentMonth).length,
       valorTotalApolices,
-      valorSaude,
-      valorVida,
-      valorOdonto,
     };
-  }, [empresas, beneficiarios, admins, solicitacoes, coparticipacoes, apolices]);
+  }, [empresas, beneficiarios, admins, solicitacoes, apolices]);
 
   // Top 5 empresas por prêmio total (todas as apólices)
   const top5EmpresasPremio = useMemo(() => {
     const premioByEmpresa = {};
     apolices.forEach(ap => {
       if (!ap.empresa_id) return;
-      let total = Number(ap.valor_premio) || 0;
-      if (ap.segmento === 'SAUDE_VIDA_ODONTO' && ap.dados_adicionais) {
-        total += Number(ap.dados_adicionais.valor_saude) || 0;
-        total += Number(ap.dados_adicionais.valor_vida) || 0;
-        total += Number(ap.dados_adicionais.valor_odonto) || 0;
+      let total;
+      if (ap.segmento === 'SAUDE_VIDA_ODONTO') {
+        total = (ap.dados_adicionais?.sub_apolices || []).reduce((s, sub) => s + (Number(sub.valor_premio) || 0), 0);
+      } else {
+        total = Number(ap.valor_premio) || 0;
       }
       premioByEmpresa[ap.empresa_id] = (premioByEmpresa[ap.empresa_id] || 0) + total;
     });

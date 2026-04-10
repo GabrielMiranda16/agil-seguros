@@ -284,7 +284,7 @@ const ApoliceDashboard = () => {
                           {apolice.dados_adicionais.sub_apolices.map((sub, i) => {
                             const tipoLabel = sub.tipo === 'saude' ? 'Saúde' : sub.tipo === 'vida' ? 'Vida' : sub.tipo === 'odonto' ? 'Odonto' : sub.tipo;
                             return (
-                              <div key={i} className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm p-3 bg-gray-50 rounded-lg">
+                              <div key={i} className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm p-3 bg-gray-50 rounded-lg">
                                 <div>
                                   <p className="text-xs text-gray-400 uppercase mb-1">Tipo</p>
                                   <p className="font-semibold text-gray-800">{tipoLabel || '—'}</p>
@@ -296,6 +296,10 @@ const ApoliceDashboard = () => {
                                 <div>
                                   <p className="text-xs text-gray-400 uppercase mb-1">Seguradora</p>
                                   <p className="font-semibold text-gray-800">{sub.seguradora || '—'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-400 uppercase mb-1">Prêmio</p>
+                                  <p className="font-semibold text-gray-800">{sub.valor_premio ? formatCurrency(sub.valor_premio) : '—'}</p>
                                 </div>
                               </div>
                             );

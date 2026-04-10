@@ -496,6 +496,9 @@ const AdminSegmentoPage = () => {
                                     <ExternalLink className="h-4 w-4" />
                                   </a>
                                 )}
+                                <Button size="sm" className="bg-[#003580] hover:bg-[#002060] text-white" onClick={() => navigate(`/apolice/${ap.id}`)}>
+                                  Acessar
+                                </Button>
                                 {canManage && (
                                   <>
                                     <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => openEditApolice(ap)}><Edit className="h-3.5 w-3.5" /></Button>
@@ -527,7 +530,7 @@ const AdminSegmentoPage = () => {
 
       {/* Modal Apólice */}
       <Dialog open={isApoliceModalOpen} onOpenChange={setIsApoliceModalOpen}>
-        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-xl sm:max-h-[90vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
             <DialogTitle>{editingApolice ? 'Editar Apólice' : 'Nova Apólice'}</DialogTitle>
             <p className="text-sm text-muted-foreground">{label}</p>
@@ -608,7 +611,7 @@ const AdminSegmentoPage = () => {
                     >
                       <X className="h-4 w-4" />
                     </button>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       <div>
                         <Label className="text-xs">Tipo</Label>
                         <select
@@ -649,6 +652,20 @@ const AdminSegmentoPage = () => {
                             return { ...p, sub_apolices: arr };
                           })}
                           placeholder="Ex: SulAmérica"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Prêmio (R$)</Label>
+                        <Input
+                          type="number" step="0.01" min="0"
+                          className="mt-1 h-8 text-sm"
+                          value={sub.valor_premio || ''}
+                          onChange={e => setDadosAdicionais(p => {
+                            const arr = [...(p.sub_apolices || [])];
+                            arr[i] = { ...arr[i], valor_premio: e.target.value };
+                            return { ...p, sub_apolices: arr };
+                          })}
+                          placeholder="0,00"
                         />
                       </div>
                     </div>
