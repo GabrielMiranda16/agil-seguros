@@ -155,7 +155,7 @@ const CoparticipacaoPage = () => {
     return beneficiarios.filter(b => idsDasEmpresas.includes(String(b.empresa_id)) && !b.data_exclusao);
   }, [beneficiarios, selectedCompanyId, empresas]);
 
-  const handleAddClick = () => {
+  const handleAddClick = (tipo) => {
     if (!selectedCompanyId) {
       toast({ variant: "destructive", title: "Atenção", description: "Selecione uma empresa antes de adicionar um registro." });
       return;
@@ -179,7 +179,7 @@ const CoparticipacaoPage = () => {
       valor: '',
       mes: `${selectedYear}-${monthPadded}`,
       descricao: '',
-      tipo: tipoTab
+      tipo: tipo || tipoTab
     });
     setIsModalOpen(true);
   };
@@ -303,13 +303,14 @@ const CoparticipacaoPage = () => {
     }
   };
 
-  const handleExportPDF = (data) => {
+  const handleExportPDF = (data, tipo) => {
     if (data.length === 0) {
       toast({ variant: "warning", description: "Não há dados para exportar." });
       return;
     }
+    const tipoExport = tipo || tipoTab;
     const doc = new jsPDF();
-    const tipoLabel = tipoTab === 'saude' ? 'Saúde' : 'Odonto';
+    const tipoLabel = tipoExport === 'saude' ? 'Saúde' : 'Odonto';
     doc.text(`Relatório de Coparticipação — ${tipoLabel}`, 14, 15);
     doc.setFontSize(11);
     doc.setTextColor(100);
@@ -328,15 +329,16 @@ const CoparticipacaoPage = () => {
       ];
     });
     doc.autoTable({ head: [tableColumn], body: tableRows, startY: 28 });
-    doc.save(`coparticipacao_${tipoTab}_${selectedCompanyId}_${selectedYear}-${String(selectedMonth).padStart(2,'0')}.pdf`);
+    doc.save(`coparticipacao_${tipoExport}_${selectedCompanyId}_${selectedYear}-${String(selectedMonth).padStart(2,'0')}.pdf`);
     toast({ description: "Exportação PDF concluída!" });
   };
 
-  const handleExportExcel = (data) => {
+  const handleExportExcel = (data, tipo) => {
     if (data.length === 0) {
       toast({ variant: "warning", description: "Não há dados para exportar." });
       return;
     }
+    const tipoExport = tipo || tipoTab;
     const exportData = data.map(item => {
       const emp = empresas.find(e => e.id === item.empresa_id);
       return {
@@ -352,7 +354,7 @@ const CoparticipacaoPage = () => {
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Coparticipacao");
-    XLSX.writeFile(workbook, `coparticipacao_${tipoTab}_${selectedCompanyId}_${selectedYear}-${String(selectedMonth).padStart(2,'0')}.xlsx`);
+    XLSX.writeFile(workbook, `coparticipacao_${tipoExport}_${selectedCompanyId}_${selectedYear}-${String(selectedMonth).padStart(2,'0')}.xlsx`);
     toast({ description: "Exportação Excel concluída!" });
   };
 
@@ -374,13 +376,13 @@ const CoparticipacaoPage = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <Button variant="outline" size="sm" onClick={() => handleExportPDF(data)} disabled={data.length === 0}>
+              <Button variant="outline" size="sm" onClick={() => handleExportPDF(data, tipo)} disabled={data.length === 0}>
                 <Download className="mr-2 h-4 w-4" /> PDF
               </Button>
-              <Button variant="outline" size="sm" onClick={() => handleExportExcel(data)} disabled={data.length === 0}>
+              <Button variant="outline" size="sm" onClick={() => handleExportExcel(data, tipo)} disabled={data.length === 0}>
                 <Download className="mr-2 h-4 w-4" /> Excel
               </Button>
-              <Button onClick={handleAddClick} className="bg-blue-600 hover:bg-blue-700 text-white" disabled={!selectedCompanyId}>
+              <Button onClick={() => handleAddClick(tipo)} className="bg-blue-600 hover:bg-blue-700 text-white" disabled={!selectedCompanyId}>
                 <Plus className="mr-2 h-4 w-4" /> Registrar
               </Button>
             </div>
@@ -462,6 +464,7 @@ const CoparticipacaoPage = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-white">Coparticipação</h1>
+            {(() => { const emp = empresas.find(e => String(e.id) === String(selectedCompanyId)); return emp ? <p className="text-white font-medium">{emp.nome_fantasia || emp.razao_social} · <span className="text-white/70">{emp.cnpj || emp.cpf || '—'}</span></p> : null; })()}
             <p className="text-white/70">Gerencie os valores de coparticipação mensal por empresa.</p>
           </div>
           <Button variant="outline" onClick={() => navigate(-1)}>
