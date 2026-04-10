@@ -550,20 +550,19 @@ const AdminSegmentoPage = () => {
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Número da Apólice</Label>
-                <Input value={apoliceForm.numero_apolice} onChange={e => setApoliceForm(p => ({ ...p, numero_apolice: e.target.value }))} placeholder="Ex: 000123456" />
-              </div>
-              <div>
-                <Label>Seguradora</Label>
-                <Input value={apoliceForm.seguradora} onChange={e => setApoliceForm(p => ({ ...p, seguradora: e.target.value }))} placeholder="Ex: SulAmérica" />
-              </div>
-            </div>
-
             {/* Fields only for non-SVD segments */}
             {!isSVD && (
               <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Número da Apólice</Label>
+                    <Input value={apoliceForm.numero_apolice} onChange={e => setApoliceForm(p => ({ ...p, numero_apolice: e.target.value }))} placeholder="Ex: 000123456" />
+                  </div>
+                  <div>
+                    <Label>Seguradora</Label>
+                    <Input value={apoliceForm.seguradora} onChange={e => setApoliceForm(p => ({ ...p, seguradora: e.target.value }))} placeholder="Ex: SulAmérica" />
+                  </div>
+                </div>
                 {/* Pet Saúde: sem vigência (plano mensal) */}
                 {segConfig?.key !== 'PET_SAUDE' && (
                   <div className="grid grid-cols-2 gap-4">
