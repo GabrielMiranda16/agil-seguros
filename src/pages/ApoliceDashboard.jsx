@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+
 import { useCompany } from '@/contexts/CompanyContext';
 import { apolicesService, SEGMENTOS } from '@/services/apolicesService';
 import { beneficiariosService } from '@/services/beneficiariosService';
 import { solicitacoesService } from '@/services/solicitacoesService';
+import { coparticipacaoService } from '@/services/coparticipacaoService';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +17,8 @@ import {
   ArrowLeft, FileText, CalendarDays, Building, DollarSign,
   Download, AlertTriangle, CheckCircle, Clock, Loader2,
   Car, Plane, Home, PawPrint, Building2, HeartPulse,
-  Users, ClipboardList, ChevronRight, Package, Monitor
+  Users, ClipboardList, ChevronRight, Package, Monitor,
+  Menu, X, LogOut
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -47,12 +50,14 @@ const STATUS_SOL_COLORS = {
 
 const ApoliceDashboard = () => {
   const { apoliceId } = useParams();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { setSelectedCompanyId } = useCompany();
   const navigate = useNavigate();
 
   const isAdmin = user?.perfil === 'CEO' || user?.perfil === 'ADM';
   const isCliente = user?.perfil === 'CLIENTE';
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const handleLogout = () => { logout(); navigate('/login'); };
 
   const [loading, setLoading] = useState(true);
   const [apolice, setApolice] = useState(null);
@@ -63,8 +68,10 @@ const ApoliceDashboard = () => {
   const showGestaoButton = isCliente && isSVD;
   const [beneficiarios, setBeneficiarios] = useState([]);
   const [solicitacoes, setSolicitacoes] = useState([]);
+  const [coparticipacoes, setCoparticipacoes] = useState([]);
   const [loadingBen, setLoadingBen] = useState(false);
   const [loadingSol, setLoadingSol] = useState(false);
+  const [loadingCopat, setLoadingCopat] = useState(false);
 
   const logoUrl = "https://storage.googleapis.com/hostinger-horizons-assets-prod/bcb47250-76a3-434c-9312-56a9dba14a6f/247eb5219c397bb2ed2bcac42f39a442.png";
 
@@ -75,14 +82,19 @@ const ApoliceDashboard = () => {
         if (ap?.empresa_id) {
           setLoadingBen(true);
           setLoadingSol(true);
-          const [ben, sol] = await Promise.all([
+          const isSVDSegmento = ap.segmento === 'SAUDE_VIDA_ODONTO';
+          if (isSVDSegmento) setLoadingCopat(true);
+          const [ben, sol, copat] = await Promise.all([
             beneficiariosService.getBeneficiariosByEmpresa(ap.empresa_id).catch(() => []),
             solicitacoesService.getSolicitacoesByEmpresa(ap.empresa_id).catch(() => []),
+            isSVDSegmento ? coparticipacaoService.getCoparticipacoesByEmpresa(ap.empresa_id).catch(() => []) : Promise.resolve([]),
           ]);
           setBeneficiarios(ben);
           setSolicitacoes(sol);
+          setCoparticipacoes(copat);
           setLoadingBen(false);
           setLoadingSol(false);
+          setLoadingCopat(false);
         }
       })
       .catch(console.error)
@@ -142,45 +154,80 @@ const ApoliceDashboard = () => {
         {/* Header */}
         <header className="z-40" style={{ background: 'transparent' }}>
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-24">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between h-16 sm:h-24">
+              <div className="flex items-center gap-2">
                 <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="text-white/80 hover:text-white hover:bg-white/10">
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
-                <img src={logoUrl} alt="Ágil Seguros" className="h-24 w-auto object-contain" />
+                <img src={logoUrl} alt="Ágil Seguros" className="h-10 sm:h-20 w-auto object-contain" />
               </div>
-              <div className="flex items-center gap-2 text-white/80 text-sm">
-                <SegIcon className="h-4 w-4" />
-                <span className="hidden sm:inline">{segLabel}</span>
+              <div className="flex items-center gap-2">
+                <div className="hidden sm:flex items-center gap-2 text-white/80 text-sm">
+                  <SegIcon className="h-4 w-4" />
+                  <span>{segLabel}</span>
+                </div>
+                <button
+                  className="sm:hidden p-2 rounded-lg text-white/80 hover:bg-white/10 transition-colors"
+                  onClick={() => setMobileMenuOpen(v => !v)}
+                  aria-label="Menu"
+                >
+                  {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                </button>
               </div>
             </div>
           </div>
+          {mobileMenuOpen && (
+            <div className="sm:hidden border-t border-white/10 bg-[#003580]/95 backdrop-blur px-4 py-4 space-y-1">
+              <div className="px-3 py-2 mb-2">
+                <p className="text-sm font-semibold text-white">{user?.email}</p>
+              </div>
+              <div className="border-t border-white/10 pt-2 space-y-1">
+                <button onClick={() => { navigate('/select-segmento'); setMobileMenuOpen(false); }}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors w-full">
+                  <ArrowLeft className="h-5 w-5" /> Meus Seguros
+                </button>
+                <div className="border-t border-white/10 pt-1 mt-1">
+                  <button onClick={() => { handleLogout(); setMobileMenuOpen(false); }}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-300 hover:bg-red-500/20 hover:text-red-200 transition-colors w-full">
+                    <LogOut className="h-5 w-5" /> Sair
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </header>
 
-        <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <h1 className="text-2xl font-bold text-white mb-6">
-            Apólice {apolice.numero_apolice || '—'}
-          </h1>
+        <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 sm:pb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-2xl font-bold text-white">
+              Apólice {apolice.numero_apolice || '—'}
+            </h1>
+            {showGestaoButton && (
+              <Button variant="ghost" onClick={() => navigate(`/cliente/${apolice.empresa_id}`)} className="text-white/80 hover:text-white hover:bg-white/10 border border-white/20">
+                <Users className="mr-2 h-4 w-4" /> Acessar Gestão <ChevronRight className="ml-1 h-4 w-4" />
+              </Button>
+            )}
+          </div>
 
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <Tabs defaultValue="dados" className="space-y-4">
-              <TabsList className={`bg-white/10 ${showTabs ? 'grid grid-cols-2 sm:grid-cols-4' : 'grid grid-cols-1'} w-full`}>
-                <TabsTrigger value="dados" className="text-white/80 data-[state=active]:bg-white data-[state=active]:text-[#003580]">
+              <TabsList className={`bg-white/10 w-full ${showTabs ? 'flex overflow-x-auto sm:grid sm:grid-cols-4' : 'grid grid-cols-1'}`}>
+                <TabsTrigger value="dados" className="flex-shrink-0 text-white/80 data-[state=active]:bg-white data-[state=active]:text-[#003580]">
                   <FileText className="h-4 w-4 mr-1.5" /> Apólice
                 </TabsTrigger>
                 {showTabs && (
                   <>
-                    <TabsTrigger value="beneficiarios" className="text-white/80 data-[state=active]:bg-white data-[state=active]:text-[#003580]">
+                    <TabsTrigger value="beneficiarios" className="flex-shrink-0 text-white/80 data-[state=active]:bg-white data-[state=active]:text-[#003580]">
                       <Users className="h-4 w-4 mr-1.5" />
                       Beneficiários
                       {isAdmin && !loadingBen && <span className="ml-1.5 bg-white/20 text-white text-xs px-1.5 py-0.5 rounded-full">{beneficiarios.length}</span>}
                     </TabsTrigger>
-                    <TabsTrigger value="solicitacoes" className="text-white/80 data-[state=active]:bg-white data-[state=active]:text-[#003580]">
+                    <TabsTrigger value="solicitacoes" className="flex-shrink-0 text-white/80 data-[state=active]:bg-white data-[state=active]:text-[#003580]">
                       <ClipboardList className="h-4 w-4 mr-1.5" />
                       Solicitações
                       {isAdmin && pendentes > 0 && <span className="ml-1.5 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">{pendentes}</span>}
                     </TabsTrigger>
-                    <TabsTrigger value="coparticipacao" className="text-white/80 data-[state=active]:bg-white data-[state=active]:text-[#003580]">
+                    <TabsTrigger value="coparticipacao" className="flex-shrink-0 text-white/80 data-[state=active]:bg-white data-[state=active]:text-[#003580]">
                       <DollarSign className="h-4 w-4 mr-1.5" /> Coparticipação
                     </TabsTrigger>
                   </>
@@ -423,13 +470,6 @@ const ApoliceDashboard = () => {
                     </Card>
                   )}
 
-                  {showGestaoButton && (
-                    <div className="flex justify-end pt-2">
-                      <Button className="bg-[#003580] hover:bg-[#002060] text-white" onClick={() => navigate(`/cliente/${apolice.empresa_id}`)}>
-                        <Users className="mr-2 h-4 w-4" /> Acessar Gestão <ChevronRight className="ml-1 h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
                 </div>
               </TabsContent>
 
@@ -458,7 +498,7 @@ const ApoliceDashboard = () => {
                         </div>
                       ) : (
                         <div className="space-y-2">
-                          {beneficiarios.slice(0, 10).map(b => (
+                          {[...beneficiarios].sort((a, b) => new Date(b.data_inclusao || b.created_at || 0) - new Date(a.data_inclusao || a.created_at || 0)).slice(0, 5).map(b => (
                             <div key={b.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border text-sm">
                               <div>
                                 <p className="font-medium text-gray-800">{b.nome_completo}</p>
@@ -469,8 +509,8 @@ const ApoliceDashboard = () => {
                               </Badge>
                             </div>
                           ))}
-                          {beneficiarios.length > 10 && (
-                            <p className="text-xs text-gray-400 text-center pt-1">+{beneficiarios.length - 10} outros</p>
+                          {beneficiarios.length > 5 && (
+                            <p className="text-xs text-gray-400 text-center pt-1">+{beneficiarios.length - 5} outros</p>
                           )}
                           <Button size="sm" variant="outline" className="w-full mt-2" onClick={() => navigate(`/cliente/${apolice.empresa_id}`)}>
                             Ver todos {isAdmin && 'e gerenciar'} <ChevronRight className="ml-1 h-3.5 w-3.5" />
@@ -508,7 +548,7 @@ const ApoliceDashboard = () => {
                         </div>
                       ) : (
                         <div className="space-y-2">
-                          {solicitacoes.slice(0, 10).map(s => (
+                          {[...solicitacoes].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).slice(0, 5).map(s => (
                             <div key={s.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border text-sm">
                               <div>
                                 <p className="font-medium text-gray-800">{s.tipo_solicitacao}</p>
@@ -517,6 +557,9 @@ const ApoliceDashboard = () => {
                               <Badge className={STATUS_SOL_COLORS[s.status] || 'bg-gray-100 text-gray-600'}>{s.status}</Badge>
                             </div>
                           ))}
+                          {solicitacoes.length > 5 && (
+                            <p className="text-xs text-gray-400 text-center pt-1">+{solicitacoes.length - 5} outras</p>
+                          )}
                         </div>
                       )}
                     </CardContent>
@@ -528,24 +571,52 @@ const ApoliceDashboard = () => {
               {showTabs && (
                 <TabsContent value="coparticipacao">
                   <Card>
-                    <CardHeader>
+                    <CardHeader className="flex flex-row items-center justify-between">
                       <CardTitle className="flex items-center gap-2 text-base">
                         <DollarSign className="h-4 w-4" /> Coparticipação
+                        {(() => { const now = new Date(); return <span className="text-xs font-normal text-gray-400 ml-1">{String(now.getMonth()+1).padStart(2,'0')}/{now.getFullYear()}</span>; })()}
                       </CardTitle>
+                      <Button size="sm" className="bg-[#003580] hover:bg-[#002060] text-white" onClick={() => {
+                        if (isAdmin) goToCoparticipacao();
+                        else navigate(`/cliente/${apolice.empresa_id}/coparticipacao`);
+                      }}>
+                        {isAdmin ? 'Gerenciar' : 'Ver'} <ChevronRight className="ml-1 h-4 w-4" />
+                      </Button>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-center py-8">
-                        <DollarSign className="h-12 w-12 text-[#003580]/20 mx-auto mb-3" />
-                        <p className="text-gray-600 text-sm mb-4">
-                          {isAdmin ? 'Gerencie os lançamentos de coparticipação desta empresa.' : 'Consulte os lançamentos de coparticipação.'}
-                        </p>
-                        <Button className="bg-[#003580] hover:bg-[#002060] text-white" onClick={() => {
-                          if (isAdmin) goToCoparticipacao();
-                          else navigate(`/cliente/${apolice.empresa_id}/coparticipacao`);
-                        }}>
-                          <DollarSign className="mr-2 h-4 w-4" /> Acessar Coparticipação
-                        </Button>
-                      </div>
+                      {loadingCopat ? (
+                        <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div>
+                      ) : (() => {
+                        const now = new Date();
+                        const periodo = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+                        const doMes = coparticipacoes.filter(c => c.competencia === periodo);
+                        const totalSaude = doMes.filter(c => c.tipo === 'saude' || !c.tipo).reduce((acc, c) => acc + (Number(c.valor) || 0), 0);
+                        const totalOdonto = doMes.filter(c => c.tipo === 'odonto').reduce((acc, c) => acc + (Number(c.valor) || 0), 0);
+                        const fmt = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+                        return (
+                          <div className="space-y-3">
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+                                <p className="text-xs text-blue-500 uppercase font-semibold mb-1">Saúde</p>
+                                <p className="text-xl font-bold text-blue-700">{fmt(totalSaude)}</p>
+                                <p className="text-xs text-blue-400 mt-0.5">{doMes.filter(c => c.tipo === 'saude' || !c.tipo).length} lançamento(s)</p>
+                              </div>
+                              <div className="p-4 bg-green-50 rounded-xl border border-green-100">
+                                <p className="text-xs text-green-500 uppercase font-semibold mb-1">Odonto</p>
+                                <p className="text-xl font-bold text-green-700">{fmt(totalOdonto)}</p>
+                                <p className="text-xs text-green-400 mt-0.5">{doMes.filter(c => c.tipo === 'odonto').length} lançamento(s)</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border text-sm">
+                              <span className="text-gray-500">Total do mês</span>
+                              <span className="font-bold text-gray-800">{fmt(totalSaude + totalOdonto)}</span>
+                            </div>
+                            {doMes.length === 0 && (
+                              <p className="text-center text-xs text-gray-400 pt-1">Nenhum lançamento registrado neste mês.</p>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </CardContent>
                   </Card>
                 </TabsContent>
