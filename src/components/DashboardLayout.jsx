@@ -18,7 +18,12 @@ import {
   Loader2,
   User,
   Menu,
-  X
+  X,
+  Users,
+  FileText,
+  LayoutDashboard,
+  ClipboardList,
+  Shield
 } from 'lucide-react';
 import useDateTime from '@/hooks/use-date-time';
 import {
@@ -281,44 +286,80 @@ const DashboardLayout = ({ children }) => {
               <p className="text-xs text-blue-200">{user?.perfil}</p>
             </div>
             <div className="border-t border-white/10 pt-2 space-y-1">
-              {isClientDashboard && empresaId && (
-                <NavLink
-                  to={`/cliente/${empresaId}/coparticipacao`}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white'}`
-                  }
-                >
-                  <DollarSign className="h-5 w-5" /> Minha Coparticipação
-                </NavLink>
+
+              {/* CEO nav */}
+              {user?.perfil === 'CEO' && (
+                <>
+                  <NavLink to="/ceo" onClick={() => setMobileMenuOpen(false)}
+                    className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}>
+                    <LayoutDashboard className="h-5 w-5" /> Dashboard CEO
+                  </NavLink>
+                  <NavLink to="/admin" onClick={() => setMobileMenuOpen(false)}
+                    className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}>
+                    <Shield className="h-5 w-5" /> Administração
+                  </NavLink>
+                  <NavLink to="/solicitacoes" onClick={() => setMobileMenuOpen(false)}
+                    className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}>
+                    <ClipboardList className="h-5 w-5" /> Solicitações
+                  </NavLink>
+                  <NavLink to="/coparticipacao" onClick={() => setMobileMenuOpen(false)}
+                    className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}>
+                    <DollarSign className="h-5 w-5" /> Coparticipação
+                  </NavLink>
+                </>
               )}
-              {isAdminViewingClient && (
-                <button
-                  onClick={() => { handleGoBack(); setMobileMenuOpen(false); }}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors w-full"
-                >
-                  <ArrowLeft className="h-5 w-5" /> Voltar
+
+              {/* ADM nav */}
+              {user?.perfil === 'ADM' && (
+                <>
+                  <NavLink to="/admin" onClick={() => setMobileMenuOpen(false)}
+                    className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}>
+                    <Users className="h-5 w-5" /> Clientes
+                  </NavLink>
+                  <NavLink to="/solicitacoes" onClick={() => setMobileMenuOpen(false)}
+                    className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}>
+                    <ClipboardList className="h-5 w-5" /> Solicitações
+                  </NavLink>
+                  <NavLink to="/coparticipacao" onClick={() => setMobileMenuOpen(false)}
+                    className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}>
+                    <DollarSign className="h-5 w-5" /> Coparticipação
+                  </NavLink>
+                  {isAdminViewingClient && (
+                    <button onClick={() => { handleGoBack(); setMobileMenuOpen(false); }}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors w-full">
+                      <ArrowLeft className="h-5 w-5" /> Voltar ao Painel
+                    </button>
+                  )}
+                </>
+              )}
+
+              {/* CLIENT nav */}
+              {user?.perfil === 'CLIENTE' && (
+                <>
+                  <NavLink to="/select-segmento" onClick={() => setMobileMenuOpen(false)}
+                    className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}>
+                    <FileText className="h-5 w-5" /> Meus Seguros
+                  </NavLink>
+                  {isClientDashboard && empresaId && (
+                    <NavLink to={`/cliente/${empresaId}/coparticipacao`} onClick={() => setMobileMenuOpen(false)}
+                      className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}>
+                      <DollarSign className="h-5 w-5" /> Minha Coparticipação
+                    </NavLink>
+                  )}
+                  <button onClick={() => { navigate('/select-company'); setMobileMenuOpen(false); }}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors w-full">
+                    <Repeat className="h-5 w-5" /> Trocar CNPJ
+                  </button>
+                </>
+              )}
+
+              <div className="border-t border-white/10 pt-2 mt-1 space-y-1">
+                <button onClick={() => { setIsPasswordModalOpen(true); setMobileMenuOpen(false); }}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors w-full">
+                  <Lock className="h-5 w-5" /> Alterar Senha
                 </button>
-              )}
-              <button
-                onClick={() => { setIsPasswordModalOpen(true); setMobileMenuOpen(false); }}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors w-full"
-              >
-                <Lock className="h-5 w-5" /> Alterar Senha
-              </button>
-              {isClientDashboard && user?.perfil === 'CLIENTE' && (
-                <button
-                  onClick={() => { navigate('/select-company'); setMobileMenuOpen(false); }}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors w-full"
-                >
-                  <Repeat className="h-5 w-5" /> Trocar CNPJ
-                </button>
-              )}
-              <div className="border-t border-white/10 pt-1 mt-1">
-                <button
-                  onClick={() => { handleLogout(); setMobileMenuOpen(false); }}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-300 hover:bg-red-500/20 hover:text-red-200 transition-colors w-full"
-                >
+                <button onClick={() => { handleLogout(); setMobileMenuOpen(false); }}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-300 hover:bg-red-500/20 hover:text-red-200 transition-colors w-full">
                   <LogOut className="h-5 w-5" /> Sair
                 </button>
               </div>

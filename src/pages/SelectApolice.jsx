@@ -6,7 +6,7 @@ import { apolicesService, SEGMENTOS } from '@/services/apolicesService';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
-import { LogOut, ArrowLeft, FileText, CalendarDays, Building, ChevronRight, Loader2, AlertTriangle } from 'lucide-react';
+import { LogOut, ArrowLeft, FileText, CalendarDays, Building, ChevronRight, Loader2, AlertTriangle, Menu, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -23,6 +23,7 @@ const SelectApolice = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [apolices, setApolices] = useState([]);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const segConfig = SEGMENTOS[segmento];
 
@@ -63,18 +64,44 @@ const SelectApolice = () => {
         {/* Header */}
         <header className="z-40" style={{ background: 'transparent' }}>
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-24">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between h-16 sm:h-24">
+              <div className="flex items-center gap-2">
                 <Button variant="ghost" size="icon" onClick={() => navigate('/select-segmento')} className="text-white/80 hover:text-white hover:bg-white/10">
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
-                <img src={logoUrl} alt="Ágil Seguros" className="h-24 w-auto object-contain" />
+                <img src={logoUrl} alt="Ágil Seguros" className="h-12 sm:h-24 w-auto object-contain" />
               </div>
-              <Button variant="ghost" onClick={handleLogout} className="text-white/80 hover:text-white hover:bg-white/10 border border-white/20">
+              <Button variant="ghost" onClick={handleLogout} className="hidden sm:flex text-white/80 hover:text-white hover:bg-white/10 border border-white/20">
                 <LogOut className="mr-2 h-4 w-4" /> Sair
               </Button>
+              <button
+                className="sm:hidden p-2 rounded-lg text-white/80 hover:bg-white/10 transition-colors"
+                onClick={() => setMobileMenuOpen(v => !v)}
+                aria-label="Menu"
+              >
+                {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              </button>
             </div>
           </div>
+          {mobileMenuOpen && (
+            <div className="sm:hidden border-t border-white/10 bg-[#003580]/95 backdrop-blur px-4 py-4 space-y-1">
+              <div className="px-3 py-2 mb-2">
+                <p className="text-sm font-semibold text-white">{user?.email}</p>
+              </div>
+              <div className="border-t border-white/10 pt-2 space-y-1">
+                <button onClick={() => { navigate('/select-segmento'); setMobileMenuOpen(false); }}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors w-full">
+                  <ArrowLeft className="h-5 w-5" /> Meus Seguros
+                </button>
+                <div className="border-t border-white/10 pt-1 mt-1">
+                  <button onClick={() => { handleLogout(); setMobileMenuOpen(false); }}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-300 hover:bg-red-500/20 hover:text-red-200 transition-colors w-full">
+                    <LogOut className="h-5 w-5" /> Sair
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </header>
 
         <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">

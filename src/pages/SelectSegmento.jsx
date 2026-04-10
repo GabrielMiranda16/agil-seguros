@@ -13,7 +13,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { motion } from 'framer-motion';
-import { LogOut, HeartPulse, Car, Plane, Home, PawPrint, Building2, Package, Monitor, Loader2, User, Lock, UserCog, Eye, EyeOff } from 'lucide-react';
+import { LogOut, HeartPulse, Car, Plane, Home, PawPrint, Building2, Package, Monitor, Loader2, User, Lock, UserCog, Eye, EyeOff, Menu, X, Repeat } from 'lucide-react';
 import { applyCpfMask, applyCepMask } from '@/lib/masks';
 import { validatePasswordStrength } from '@/lib/userValidator';
 import bcrypt from 'bcryptjs';
@@ -40,6 +40,7 @@ const SelectSegmento = () => {
   const [loading, setLoading] = useState(true);
   const [apolicesPorSegmento, setApolicesPorSegmento] = useState({});
   const [empresa, setEmpresa] = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Modal senha
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -220,14 +221,14 @@ const SelectSegmento = () => {
         {/* Header */}
         <header className="z-40" style={{ background: 'transparent' }}>
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-24">
-              <img src={logoUrl} alt="Ágil Seguros" className="h-24 w-auto object-contain" />
-              <div className="flex items-center gap-2">
-                {empresaNome && (
-                  <span className="hidden sm:block text-white/90 text-sm font-medium">{empresaNome}</span>
-                )}
+            <div className="flex items-center justify-between h-16 sm:h-24">
+              <img src={logoUrl} alt="Ágil Seguros" className="h-12 sm:h-24 w-auto object-contain" />
 
-                {/* Menu do usuário */}
+              {/* Desktop nav */}
+              <div className="hidden sm:flex items-center gap-2">
+                {empresaNome && (
+                  <span className="text-white/90 text-sm font-medium">{empresaNome}</span>
+                )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10 border border-white/20">
@@ -250,13 +251,51 @@ const SelectSegmento = () => {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-
                 <Button variant="ghost" onClick={handleLogout} className="text-white/80 hover:text-white hover:bg-white/10 border border-white/20">
                   <LogOut className="mr-2 h-4 w-4" /> Sair
                 </Button>
               </div>
+
+              {/* Mobile: hamburger */}
+              <button
+                className="sm:hidden p-2 rounded-lg text-white/80 hover:bg-white/10 transition-colors"
+                onClick={() => setMobileMenuOpen(v => !v)}
+                aria-label="Menu"
+              >
+                {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              </button>
             </div>
           </div>
+
+          {/* Mobile menu panel */}
+          {mobileMenuOpen && (
+            <div className="sm:hidden border-t border-white/10 bg-[#003580]/95 backdrop-blur px-4 py-4 space-y-1">
+              <div className="px-3 py-2 mb-2">
+                <p className="text-sm font-semibold text-white">{user?.email}</p>
+                {empresaNome && <p className="text-xs text-blue-200">{empresaNome}</p>}
+              </div>
+              <div className="border-t border-white/10 pt-2 space-y-1">
+                <button onClick={() => { openDados(); setMobileMenuOpen(false); }}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors w-full">
+                  <UserCog className="h-5 w-5" /> {isPF ? 'Dados Pessoais' : 'Dados da Empresa'}
+                </button>
+                <button onClick={() => { setIsPasswordModalOpen(true); setMobileMenuOpen(false); }}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors w-full">
+                  <Lock className="h-5 w-5" /> Alterar Senha
+                </button>
+                <button onClick={() => { navigate('/select-company'); setMobileMenuOpen(false); }}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors w-full">
+                  <Repeat className="h-5 w-5" /> Trocar CNPJ
+                </button>
+                <div className="border-t border-white/10 pt-1 mt-1">
+                  <button onClick={() => { handleLogout(); setMobileMenuOpen(false); }}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-300 hover:bg-red-500/20 hover:text-red-200 transition-colors w-full">
+                    <LogOut className="h-5 w-5" /> Sair
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </header>
 
         {/* Content */}
