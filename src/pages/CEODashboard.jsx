@@ -170,61 +170,35 @@ const CEODashboard = () => {
     };
   }, [empresas, beneficiarios, admins, solicitacoes, coparticipacoes, apolices]);
 
-  // Chart Data Computation (Same as before)
-  const chartData = useMemo(() => {
-    const targetYear = new Date().getFullYear();
-    const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-    
-    // Monthly Data
-    const monthly = months.map((m, i) => {
-        const monthNum = i + 1;
-        const monthStr = String(monthNum).padStart(2, '0');
-        const competenciaStr = `${targetYear}-${monthStr}`;
-        
-        const monthItems = coparticipacoes.filter(c => c.competencia === competenciaStr);
-        const valor = monthItems.reduce((acc, curr) => acc + (Number(curr.valor) || 0), 0);
-        
+  // Top 5 empresas por prêmio total (todas as apólices)
+  const top5EmpresasPremio = useMemo(() => {
+    const premioByEmpresa = {};
+    apolices.forEach(ap => {
+      if (!ap.empresa_id) return;
+      let total = Number(ap.valor_premio) || 0;
+      if (ap.segmento === 'SAUDE_VIDA_ODONTO' && ap.dados_adicionais) {
+        total += Number(ap.dados_adicionais.valor_saude) || 0;
+        total += Number(ap.dados_adicionais.valor_vida) || 0;
+        total += Number(ap.dados_adicionais.valor_odonto) || 0;
+      }
+      premioByEmpresa[ap.empresa_id] = (premioByEmpresa[ap.empresa_id] || 0) + total;
+    });
+    return Object.entries(premioByEmpresa)
+      .map(([id, total]) => {
+        const emp = empresas.find(e => String(e.id) === String(id));
         return {
-            mes: m,
-            coparticipacoes: monthItems.length,
-            valor: valor
+          id,
+          name: emp ? (emp.nome_fantasia || emp.razao_social || `ID: ${id}`).substring(0, 18) : `ID: ${id}`,
+          full_name: emp ? (emp.nome_fantasia || emp.razao_social || `ID: ${id}`) : `ID: ${id}`,
+          cnpj: emp?.cnpj || emp?.cpf || '—',
+          total,
+          beneficiariosCount: beneficiarios.filter(b => String(b.empresa_id) === String(id)).length,
+          apolicesCount: apolices.filter(ap => String(ap.empresa_id) === String(id)).length,
         };
-    });
-
-    const statusCounts = { 'PENDENTE': 0, 'CONCLUIDA': 0, 'REJEITADA': 0 };
-    solicitacoes.forEach(s => {
-        if (statusCounts[s.status] !== undefined) statusCounts[s.status]++;
-    });
-
-    const COLORS = { 'PENDENTE': '#FBBF24', 'CONCLUIDA': '#10B981', 'REJEITADA': '#EF4444' };
-
-    const status = Object.keys(statusCounts)
-        .filter(key => statusCounts[key] > 0)
-        .map(key => ({
-            name: key,
-            value: statusCounts[key],
-            color: COLORS[key]
-        }));
-
-    const companyBeneficiarios = {};
-    beneficiarios.forEach(b => {
-        if (b.empresa_id) companyBeneficiarios[b.empresa_id] = (companyBeneficiarios[b.empresa_id] || 0) + 1;
-    });
-
-    const empresasData = Object.entries(companyBeneficiarios)
-        .map(([id, count]) => {
-            const emp = empresas.find(e => String(e.id) === String(id));
-            return {
-                name: emp ? (emp.nome_fantasia || emp.razao_social || `ID: ${id}`).substring(0, 15) : `ID: ${id}`,
-                full_name: emp ? (emp.nome_fantasia || emp.razao_social || `ID: ${id}`) : `ID: ${id}`,
-                beneficiarios: count
-            };
-        })
-        .sort((a, b) => b.beneficiarios - a.beneficiarios)
-        .slice(0, 5);
-
-    return { monthly, status, empresas: empresasData };
-  }, [coparticipacoes, solicitacoes, beneficiarios, empresas]);
+      })
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
+  }, [apolices, empresas, beneficiarios]);
 
   const alerts = useMemo(() => {
     const newAlerts = [];
@@ -415,13 +389,7 @@ const CEODashboard = () => {
     { title: "Beneficiários", value: metrics.totalBeneficiarios, icon: Users, color: "text-green-600" },
     { title: "Beneficiários Ativos", value: metrics.beneficiariosAtivos, icon: UserCheck, color: "text-emerald-600" },
     { title: "Administradores", value: metrics.totalAdmins, icon: Shield, color: "text-purple-600" },
-    { title: "Solicitações Pendentes", value: metrics.solicitacoesPendentes, icon: Clock, color: "text-yellow-600" },
-    { title: "Solicitações Concluídas", value: metrics.solicitacoesConcluidas, icon: CheckCircle2, color: "text-green-600" },
-    { title: "Coparticipações Mês", value: metrics.coparticipacoesMes, icon: FileText, color: "text-indigo-600" },
     { title: "Valor Total Apólices", value: metrics.valorTotalApolices, icon: DollarSign, color: "text-orange-600", isCurrency: true },
-    { title: "Prêmio Saúde", value: metrics.valorSaude, icon: DollarSign, color: "text-green-600", isCurrency: true },
-    { title: "Prêmio Vida", value: metrics.valorVida, icon: DollarSign, color: "text-blue-600", isCurrency: true },
-    { title: "Prêmio Odonto", value: metrics.valorOdonto, icon: DollarSign, color: "text-orange-500", isCurrency: true },
   ];
 
   return (
@@ -476,42 +444,58 @@ const CEODashboard = () => {
                 })}
               </div>
 
-              <Card className="bg-[#f0f7ff] border-[#c8e0f5] mb-6">
-                <CardHeader><CardTitle>Resumo Geral do Sistema</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center">
-                      <p className="text-sm text-gray-500 mb-1">Taxa de Conclusão (%)</p>
-                      <p className="text-2xl font-semibold text-gray-800">{metrics.solicitacoesPendentes + metrics.solicitacoesConcluidas > 0 ? ((metrics.solicitacoesConcluidas / (metrics.solicitacoesConcluidas + metrics.solicitacoesPendentes)) * 100).toFixed(1) : '0.0'}%</p>
-                    </div>
-                    <div className="text-center"><p className="text-sm text-gray-500 mb-1">Beneficiários Ativos</p><p className="text-2xl font-semibold text-gray-800">{metrics.totalBeneficiarios}</p></div>
-                    <div className="text-center"><p className="text-sm text-gray-500 mb-1">Admins Cadastrados</p><p className="text-2xl font-semibold text-gray-800">{metrics.totalAdmins}</p></div>
-                    <div className="text-center"><p className="text-sm text-gray-500 mb-1">Valor Total Anual</p><p className="text-2xl font-semibold text-gray-800">{formatCurrency(metrics.valorTotalCoparticipacoes)}</p></div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-                {isLoading ? Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-[126px]" />) : metricItems.map((item, index) => (
-                    <motion.div key={index} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 * (index + 1) }}>
-                      <MetricCard title={item.title} value={item.value} icon={item.icon} color={item.color} isCurrency={item.isCurrency} />
-                    </motion.div>
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+                {isLoading ? Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-[126px]" />) : metricItems.map((item, index) => (
+                  <motion.div key={index} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 * (index + 1) }}>
+                    <MetricCard title={item.title} value={item.value} icon={item.icon} color={item.color} isCurrency={item.isCurrency} />
+                  </motion.div>
                 ))}
               </div>
-              
-              <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2 mt-4 relative min-h-[300px]">
-                {isLoading && (<div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm rounded-lg"><Loader2 className="h-12 w-12 animate-spin text-blue-600 mb-4" /><p className="text-lg font-medium text-gray-600">Carregando Dashboard...</p></div>)}
-                
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-                  <Card><CardHeader><CardTitle>Coparticipações por Mês (2026)</CardTitle></CardHeader><CardContent><div className="h-[300px] w-full">{chartData.monthly.some(m => m.coparticipacoes > 0) ? (<ResponsiveContainer width="100%" height={300}><LineChart data={chartData.monthly}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="mes" /><YAxis /><Tooltip /><Legend /><Line type="monotone" dataKey="coparticipacoes" stroke="#8884d8" name="Coparticipações" /></LineChart></ResponsiveContainer>) : (<div className="flex h-full items-center justify-center text-muted-foreground">Sem dados de coparticipação</div>)}</div></CardContent></Card>
-                </motion.div>
 
+              <div className="grid gap-4 lg:grid-cols-2 mt-4">
+                {/* Gráfico Top 5 por prêmio */}
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-                  <Card><CardHeader><CardTitle>Status das Solicitações</CardTitle></CardHeader><CardContent><div className="h-[300px] w-full">{chartData.status.length > 0 ? (<ResponsiveContainer width="100%" height={300}><PieChart><Pie data={chartData.status} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} outerRadius={80} fill="#8884d8" dataKey="value">{chartData.status.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.color} />))}</Pie><Tooltip /><Legend /></PieChart></ResponsiveContainer>) : (<div className="flex h-full items-center justify-center text-muted-foreground">Sem solicitações</div>)}</div></CardContent></Card>
+                  <Card>
+                    <CardHeader><CardTitle className="text-base">Top 5 Empresas — Maior Prêmio</CardTitle></CardHeader>
+                    <CardContent>
+                      <div className="h-[300px] w-full">
+                        {top5EmpresasPremio.length > 0 ? (
+                          <ResponsiveContainer width="100%" height={300}>
+                            <BarChart data={top5EmpresasPremio} layout="vertical" margin={{ left: 8, right: 24 }}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis type="number" tickFormatter={(v) => `R$${(v/1000).toFixed(0)}k`} />
+                              <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 11 }} />
+                              <Tooltip formatter={(v) => formatCurrency(v)} />
+                              <Bar dataKey="total" fill="#003580" name="Prêmio Total" radius={[0, 4, 4, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-muted-foreground">Sem dados de apólices</div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </motion.div>
 
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="lg:col-span-2">
-                  <Card><CardHeader><CardTitle>Top 5 Empresas por Beneficiários</CardTitle></CardHeader><CardContent><div className="h-[300px] w-full">{chartData.empresas.length > 0 ? (<ResponsiveContainer width="100%" height={300}><BarChart data={chartData.empresas}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" /><YAxis /><Tooltip /><Legend /><Bar dataKey="beneficiarios" fill="#8884d8" name="Beneficiários" /></BarChart></ResponsiveContainer>) : (<div className="flex h-full items-center justify-center text-muted-foreground">Sem empresas cadastradas</div>)}</div></CardContent></Card>
+                {/* Card detalhado Top 5 */}
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+                  <Card>
+                    <CardHeader><CardTitle className="text-base">Detalhes — Top 5 por Prêmio</CardTitle></CardHeader>
+                    <CardContent className="space-y-3">
+                      {top5EmpresasPremio.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground text-sm">Sem dados de apólices</div>
+                      ) : top5EmpresasPremio.map((emp, i) => (
+                        <div key={emp.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border">
+                          <span className="text-lg font-bold text-[#003580] w-6 flex-shrink-0">#{i + 1}</span>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-gray-800 truncate">{emp.full_name}</p>
+                            <p className="text-xs text-gray-400">{emp.cnpj} · {emp.apolicesCount} apólice(s) · {emp.beneficiariosCount} benef.</p>
+                          </div>
+                          <span className="font-bold text-[#003580] text-sm flex-shrink-0">{formatCurrency(emp.total)}</span>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
                 </motion.div>
               </div>
 
@@ -634,14 +618,52 @@ const CEODashboard = () => {
           </TabsContent>
 
           <TabsContent value="relatorios">
-             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }}>
-              <div className="space-y-6">
-                <div className="grid gap-6 md:grid-cols-3">
-                  <Card className="hover:shadow-lg transition-all border-l-4 border-l-blue-500"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Relatório de Empresas</CardTitle><Building className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{filteredEmpresas.length}</div><p className="text-xs text-muted-foreground mb-4">Empresas listadas atualmente</p><Button onClick={exportEmpresas} className="w-full" variant="outline"><FileSpreadsheet className="mr-2 h-4 w-4" /> Exportar CSV</Button></CardContent></Card>
-                  <Card className="hover:shadow-lg transition-all border-l-4 border-l-orange-500"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Relatório de Solicitações</CardTitle><ClipboardList className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{filteredSolicitacoes.length}</div><p className="text-xs text-muted-foreground mb-4">Solicitações filtradas</p><Button onClick={exportSolicitacoes} className="w-full" variant="outline"><FileSpreadsheet className="mr-2 h-4 w-4" /> Exportar CSV</Button></CardContent></Card>
-                  <Card className="hover:shadow-lg transition-all border-l-4 border-l-green-500"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Relatório de Coparticipações</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{coparticipacoes.filter(c => c.competencia && c.competencia.startsWith(String(new Date().getFullYear()))).length}</div><p className="text-xs text-muted-foreground mb-4">Registros neste ano ({new Date().getFullYear()})</p><Button onClick={exportCoparticipacoes} className="w-full" variant="outline"><FileSpreadsheet className="mr-2 h-4 w-4" /> Exportar CSV</Button></CardContent></Card>
-                </div>
-                <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200"><CardHeader><CardTitle>Resumo Geral para Relatório</CardTitle><CardDescription>Visão consolidada dos principais indicadores do sistema.</CardDescription></CardHeader><CardContent><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"><div className="flex flex-col items-center p-4 bg-white/50 rounded-lg"><span className="text-sm text-gray-500 font-medium">Total Empresas</span><span className="text-3xl font-bold text-blue-600 mt-2">{metrics.totalEmpresas}</span></div><div className="flex flex-col items-center p-4 bg-white/50 rounded-lg"><span className="text-sm text-gray-500 font-medium">Total Beneficiários</span><span className="text-3xl font-bold text-green-600 mt-2">{metrics.totalBeneficiarios}</span></div><div className="flex flex-col items-center p-4 bg-white/50 rounded-lg"><span className="text-sm text-gray-500 font-medium">Solicitações Pendentes</span><span className="text-3xl font-bold text-orange-500 mt-2">{metrics.solicitacoesPendentes}</span></div><div className="flex flex-col items-center p-4 bg-white/50 rounded-lg"><span className="text-sm text-gray-500 font-medium">Valor Total Anual</span><span className="text-3xl font-bold text-purple-600 mt-2">{(metrics.valorTotalCoparticipacoes / 1000).toFixed(1)}k</span></div></div></CardContent></Card>
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }}>
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                <Card className="hover:shadow-lg transition-all border-l-4 border-l-blue-500">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Empresas</CardTitle>
+                    <Building className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{filteredEmpresas.length}</div>
+                    <p className="text-xs text-muted-foreground mb-4">Empresas cadastradas</p>
+                    <Button onClick={exportEmpresas} className="w-full" variant="outline"><FileSpreadsheet className="mr-2 h-4 w-4" /> Exportar CSV</Button>
+                  </CardContent>
+                </Card>
+                <Card className="hover:shadow-lg transition-all border-l-4 border-l-green-500">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Clientes</CardTitle>
+                    <UserCheck className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{users.filter(u => u.perfil === 'CLIENTE').length}</div>
+                    <p className="text-xs text-muted-foreground mb-4">Usuários clientes</p>
+                    <Button onClick={() => exportToCSV(users.filter(u => u.perfil === 'CLIENTE').map(u => ({ 'Email': u.email, 'Perfil': u.perfil, 'Ativo': u.ativo ? 'Sim' : 'Não' })), 'relatorio_clientes')} className="w-full" variant="outline"><FileSpreadsheet className="mr-2 h-4 w-4" /> Exportar CSV</Button>
+                  </CardContent>
+                </Card>
+                <Card className="hover:shadow-lg transition-all border-l-4 border-l-purple-500">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Beneficiários</CardTitle>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{beneficiarios.length}</div>
+                    <p className="text-xs text-muted-foreground mb-4">Beneficiários cadastrados</p>
+                    <Button onClick={() => exportToCSV(beneficiarios.map(b => ({ 'Nome': b.nome_completo, 'CPF': b.cpf || '—', 'Tipo': b.tipo_beneficiario || '—', 'Situação': b.situacao || '—', 'Empresa ID': b.empresa_id })), 'relatorio_beneficiarios')} className="w-full" variant="outline"><FileSpreadsheet className="mr-2 h-4 w-4" /> Exportar CSV</Button>
+                  </CardContent>
+                </Card>
+                <Card className="hover:shadow-lg transition-all border-l-4 border-l-orange-500">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Apólices</CardTitle>
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{apolices.length}</div>
+                    <p className="text-xs text-muted-foreground mb-4">Apólices cadastradas</p>
+                    <Button onClick={() => exportToCSV(apolices.map(ap => { const emp = empresas.find(e => String(e.id) === String(ap.empresa_id)); return { 'Número': ap.numero_apolice || '—', 'Segmento': ap.segmento || '—', 'Empresa': emp?.nome_fantasia || '—', 'Seguradora': ap.seguradora || '—', 'Prêmio': ap.valor_premio || 0, 'Vigência Início': ap.vigencia_inicio || '—', 'Vigência Fim': ap.vigencia_fim || '—' }; }), 'relatorio_apolices')} className="w-full" variant="outline"><FileSpreadsheet className="mr-2 h-4 w-4" /> Exportar CSV</Button>
+                  </CardContent>
+                </Card>
               </div>
             </motion.div>
           </TabsContent>
