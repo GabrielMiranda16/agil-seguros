@@ -26,7 +26,7 @@ const SelectApolice = () => {
   const [apolices, setApolices] = useState([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const segConfig = SEGMENTOS[segmento];
+  const segConfig = SEGMENTOS[segmento] || SEGMENTOS[segmento?.toUpperCase()] || Object.values(SEGMENTOS).find(s => s.slug === segmento);
 
   useEffect(() => {
     const empresaId = user?.empresa_matriz_id || user?.empresa_id;
@@ -106,7 +106,7 @@ const SelectApolice = () => {
         </header>
 
         <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 sm:pb-8">
-          <h1 className="text-2xl font-bold text-white mb-6">{segConfig?.label || segmento}</h1>
+          <h1 className="text-2xl font-bold text-white mb-6">{segConfig?.label || segmento?.toLowerCase().replace(/_/g, ' ')}</h1>
 
           {apolices.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24 text-center">
