@@ -6,6 +6,7 @@ const AuthContext = createContext({});
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [users, setUsers] = useState([]);
   const [empresasMatriz, setEmpresasMatriz] = useState([]);
 
@@ -20,6 +21,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('user');
       }
     }
+    setAuthLoading(false);
 
     // Fetch initial data from Supabase
     const loadInitialData = async () => {
@@ -71,10 +73,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      login, 
-      logout, 
+    <AuthContext.Provider value={{
+      user,
+      authLoading,
+      login,
+      logout,
       users,
       setUsers,
       empresasMatriz,
