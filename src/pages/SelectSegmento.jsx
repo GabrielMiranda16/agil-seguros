@@ -15,6 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { motion } from 'framer-motion';
 import { LogOut, HeartPulse, Car, Plane, Home, PawPrint, Building2, Package, Monitor, Loader2, User, Lock, UserCog, Eye, EyeOff, Menu, X, Repeat } from 'lucide-react';
 import { applyCpfMask, applyCepMask } from '@/lib/masks';
+import ChatWidget from '@/components/ChatWidget';
 import { validatePasswordStrength } from '@/lib/userValidator';
 import bcrypt from 'bcryptjs';
 
@@ -461,6 +462,7 @@ const SelectSegmento = () => {
           </form>
         </DialogContent>
       </Dialog>
+      <ChatWidget />
     </>
   );
 };

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
 import { LogOut, ArrowLeft, FileText, CalendarDays, Building, ChevronRight, Loader2, AlertTriangle, Menu, X } from 'lucide-react';
+import ChatWidget from '@/components/ChatWidget';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -176,6 +177,7 @@ const SelectApolice = () => {
           )}
         </main>
       </div>
+      <ChatWidget />
     </>
   );
 };

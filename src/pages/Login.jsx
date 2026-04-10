@@ -98,7 +98,7 @@ const LoginPage = () => {
         <title>Login - Ágil Seguros</title>
         <meta name="description" content="Acesse sua conta no sistema Ágil Seguros." />
       </Helmet>
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-soft-gradient">
+      <div className="h-screen flex flex-col items-center justify-center p-4 bg-soft-gradient overflow-hidden">
         <motion.div
           initial={{ opacity: 0, y: -20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
