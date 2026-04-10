@@ -6,17 +6,19 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
-import { 
-  LogOut, 
-  Repeat, 
-  ChevronsRight, 
-  ArrowLeft, 
-  Calendar, 
-  Clock, 
+import {
+  LogOut,
+  Repeat,
+  ChevronsRight,
+  ArrowLeft,
+  Calendar,
+  Clock,
   DollarSign,
   Lock,
   Loader2,
-  User
+  User,
+  Menu,
+  X
 } from 'lucide-react';
 import useDateTime from '@/hooks/use-date-time';
 import {
@@ -82,6 +84,8 @@ const DashboardLayout = ({ children }) => {
 
     loadData();
   }, []);
+
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Password Modal States
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -167,67 +171,65 @@ const DashboardLayout = ({ children }) => {
 
   return (
     <div className="min-h-screen flex flex-col bg-soft-gradient">
-      <header className="z-40" style={{ background: 'transparent' }}>
+      <header className="z-40 relative" style={{ background: 'transparent' }}>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 sm:h-24">
-            <div className="flex items-center space-x-4">
-              <Link to={getHomeLink()}>
+            {/* Logo + breadcrumb */}
+            <div className="flex items-center space-x-3 min-w-0">
+              <Link to={getHomeLink()} className="shrink-0">
                 <img
                   src="https://storage.googleapis.com/hostinger-horizons-assets-prod/bcb47250-76a3-434c-9312-56a9dba14a6f/247eb5219c397bb2ed2bcac42f39a442.png"
                   alt="Ágil Seguros"
-                  className="h-14 sm:h-24 w-auto object-contain"
+                  className="h-12 sm:h-20 w-auto object-contain"
                 />
               </Link>
               {currentEmpresa && (
-                  <div className="hidden md:flex items-center text-sm">
-                    <ChevronsRight className="h-5 w-5 text-white/40 mx-1" />
-                    <span className="font-semibold text-white/80 truncate max-w-xs">
-                      {currentEmpresa.nome_fantasia || currentEmpresa.razao_social}
-                    </span>
-                    <Badge variant={currentEmpresa.tipo === 'MATRIZ' ? 'default' : 'secondary'} className="ml-2">{currentEmpresa.tipo}</Badge>
-                  </div>
+                <div className="hidden md:flex items-center text-sm min-w-0">
+                  <ChevronsRight className="h-5 w-5 text-white/40 mx-1 shrink-0" />
+                  <span className="font-semibold text-white/80 truncate max-w-xs">
+                    {currentEmpresa.nome_fantasia || currentEmpresa.razao_social}
+                  </span>
+                  <Badge variant={currentEmpresa.tipo === 'MATRIZ' ? 'default' : 'secondary'} className="ml-2 shrink-0">{currentEmpresa.tipo}</Badge>
+                </div>
               )}
             </div>
-            <div className="flex items-center space-x-2 md:space-x-4">
-               <div className="hidden lg:flex items-center space-x-4 text-sm font-medium text-white/80">
-                  <div className="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full">
-                    <Calendar className="h-4 w-4 text-white/70" />
-                    <span>{formattedDate}</span>
-                  </div>
-                  <div className="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full">
-                    <Clock className="h-4 w-4 text-white/70" />
-                    <span>{formattedTime} (Brasília)</span>
-                  </div>
-               </div>
-              
-              {/* Client Menu Link for Coparticipacao */}
+
+            {/* Desktop nav */}
+            <div className="hidden sm:flex items-center space-x-2 md:space-x-4">
+              <div className="hidden lg:flex items-center space-x-4 text-sm font-medium text-white/80">
+                <div className="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full">
+                  <Calendar className="h-4 w-4 text-white/70" />
+                  <span>{formattedDate}</span>
+                </div>
+                <div className="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full">
+                  <Clock className="h-4 w-4 text-white/70" />
+                  <span>{formattedTime} (Brasília)</span>
+                </div>
+              </div>
+
               {isClientDashboard && empresaId && (
                 <NavLink
                   to={`/cliente/${empresaId}/coparticipacao`}
                   className={({ isActive }) =>
-                    `flex items-center p-2 rounded-lg text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'bg-white/20 text-white'
-                        : 'text-white/80 hover:bg-white/10 hover:text-white'
-                    }`
+                    `flex items-center p-2 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white'}`
                   }
                 >
-                  <DollarSign className="h-5 w-5 mr-0 sm:mr-2" />
-                  <span className="hidden sm:inline">Minha Coparticipação</span>
+                  <DollarSign className="h-5 w-5 mr-2" />
+                  <span>Minha Coparticipação</span>
                 </NavLink>
               )}
 
               {isAdminViewingClient && (
                 <Button variant="ghost" size="sm" className="text-white/80 hover:text-white hover:bg-white/10 border border-white/20" onClick={handleGoBack}>
-                  <ArrowLeft className="h-4 w-4 mr-0 sm:mr-2" />
-                  <span className="hidden sm:inline">Voltar</span>
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  <span>Voltar</span>
                 </Button>
               )}
-              
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center gap-2 px-2 hover:bg-white/10 text-white">
-                    <div className="text-right hidden sm:block">
+                    <div className="text-right hidden md:block">
                       <p className="text-sm font-medium text-white">{user?.email}</p>
                       <p className="text-xs text-blue-200 font-semibold">{user?.perfil}</p>
                     </div>
@@ -239,32 +241,93 @@ const DashboardLayout = ({ children }) => {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Button variant="ghost" className="w-full justify-start cursor-pointer font-normal" onClick={() => setIsPasswordModalOpen(true)}>
-                      <Lock className="mr-2 h-4 w-4" />
-                      Alterar Senha
+                      <Lock className="mr-2 h-4 w-4" /> Alterar Senha
                     </Button>
                   </DropdownMenuItem>
                   {isClientDashboard && user?.perfil === 'CLIENTE' && (
                     <DropdownMenuItem asChild>
                       <Button variant="ghost" className="w-full justify-start cursor-pointer font-normal" onClick={() => navigate('/select-company')}>
-                        <Repeat className="mr-2 h-4 w-4" />
-                        Trocar CNPJ
+                        <Repeat className="mr-2 h-4 w-4" /> Trocar CNPJ
                       </Button>
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Button variant="ghost" className="w-full justify-start cursor-pointer text-red-600 hover:text-red-600 hover:bg-red-50" onClick={handleLogout}>
-                      <LogOut className="mr-2 h-4 w-4" />
-                      Sair
+                      <LogOut className="mr-2 h-4 w-4" /> Sair
                     </Button>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
+
+            {/* Mobile: hamburger button */}
+            <button
+              className="sm:hidden p-2 rounded-lg text-white/80 hover:bg-white/10 transition-colors"
+              onClick={() => setMobileMenuOpen(v => !v)}
+              aria-label="Menu"
+            >
+              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile menu panel */}
+        {mobileMenuOpen && (
+          <div className="sm:hidden border-t border-white/10 bg-[#003580]/95 backdrop-blur px-4 py-4 space-y-1">
+            {/* User info */}
+            <div className="px-3 py-2 mb-2">
+              <p className="text-sm font-semibold text-white">{user?.email}</p>
+              <p className="text-xs text-blue-200">{user?.perfil}</p>
+            </div>
+            <div className="border-t border-white/10 pt-2 space-y-1">
+              {isClientDashboard && empresaId && (
+                <NavLink
+                  to={`/cliente/${empresaId}/coparticipacao`}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white'}`
+                  }
+                >
+                  <DollarSign className="h-5 w-5" /> Minha Coparticipação
+                </NavLink>
+              )}
+              {isAdminViewingClient && (
+                <button
+                  onClick={() => { handleGoBack(); setMobileMenuOpen(false); }}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors w-full"
+                >
+                  <ArrowLeft className="h-5 w-5" /> Voltar
+                </button>
+              )}
+              <button
+                onClick={() => { setIsPasswordModalOpen(true); setMobileMenuOpen(false); }}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors w-full"
+              >
+                <Lock className="h-5 w-5" /> Alterar Senha
+              </button>
+              {isClientDashboard && user?.perfil === 'CLIENTE' && (
+                <button
+                  onClick={() => { navigate('/select-company'); setMobileMenuOpen(false); }}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors w-full"
+                >
+                  <Repeat className="h-5 w-5" /> Trocar CNPJ
+                </button>
+              )}
+              <div className="border-t border-white/10 pt-1 mt-1">
+                <button
+                  onClick={() => { handleLogout(); setMobileMenuOpen(false); }}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-300 hover:bg-red-500/20 hover:text-red-200 transition-colors w-full"
+                >
+                  <LogOut className="h-5 w-5" /> Sair
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
-      <main className="flex-grow container mx-auto p-4 sm:p-6 lg:p-8">
+
+      <main className="flex-grow container mx-auto p-4 sm:p-6 lg:p-8 pb-28 sm:pb-8">
         {children}
       </main>
 

@@ -294,11 +294,11 @@ const CoparticipacaoClientePage = () => {
 
         {/* Table */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <CardTitle>Detalhamento</CardTitle>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={handleExportExcel} disabled={filteredCoparticipacoes.length === 0}>
-                <Download className="mr-2 h-4 w-4" /> Baixar Excel (.xlsx)
+                <Download className="mr-2 h-4 w-4" /> Baixar Excel
               </Button>
               <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={filteredCoparticipacoes.length === 0}>
                 <Download className="mr-2 h-4 w-4" /> Baixar PDF
