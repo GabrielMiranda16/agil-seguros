@@ -24,7 +24,7 @@ const UnauthorizedPage = () => {
         </header>
 
         <main className="flex-grow flex flex-col items-center justify-center text-center px-4">
-          <ShieldAlert className="h-20 w-20 text-yellow-300 mb-6 opacity-90" />
+          <ShieldAlert className="h-20 w-20 text-white mb-6 opacity-90" />
           <h1 className="text-3xl font-bold text-white mb-2">Acesso Negado</h1>
           <p className="text-white/70 text-base mb-8">Você não tem permissão para acessar esta página.</p>
           <Button
