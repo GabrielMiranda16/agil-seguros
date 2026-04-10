@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { CompanyProvider } from '@/contexts/CompanyContext'; // Importar CompanyProvider
 import { Toaster } from '@/components/ui/toaster';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import { Loader2 } from 'lucide-react';
 
 import LoginPage from '@/pages/Login';
 import CEODashboard from '@/pages/CEODashboard';
@@ -22,18 +23,25 @@ import CoparticipacaoClientePage from '@/pages/CoparticipacaoClientePage';
 import ForceChangePassword from '@/pages/ForceChangePassword';
 
 const AppRoutes = () => {
-  const { user } = useAuth();
+  const { user, authLoading } = useAuth();
 
   const getHomeRoute = () => {
     if (!user) return '/login';
     switch (user.perfil) {
       case 'CEO': return '/ceo';
       case 'ADM': return '/admin';
-      case 'CLIENTE':
-        return '/select-segmento';
+      case 'CLIENTE': return '/select-segmento';
       default: return '/login';
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-soft-gradient">
+        <Loader2 className="h-8 w-8 animate-spin text-white" />
+      </div>
+    );
+  }
 
   return (
     <Routes>
