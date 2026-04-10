@@ -173,6 +173,7 @@ const DashboardLayout = ({ children }) => {
   const isClientDashboard = location.pathname.startsWith('/cliente/');
   const isAdminViewingClient = (user?.perfil === 'CEO' || user?.perfil === 'ADM') && isClientDashboard;
   const currentEmpresa = isClientDashboard ? empresas.find(e => e.id === Number(empresaId)) : null;
+  const isApolicePage = location.pathname.startsWith('/apolice/');
 
   return (
     <div className="min-h-screen flex flex-col bg-soft-gradient">
@@ -185,7 +186,7 @@ const DashboardLayout = ({ children }) => {
                 <img
                   src="https://storage.googleapis.com/hostinger-horizons-assets-prod/bcb47250-76a3-434c-9312-56a9dba14a6f/247eb5219c397bb2ed2bcac42f39a442.png"
                   alt="Ágil Seguros"
-                  className="h-12 sm:h-20 w-auto object-contain"
+                  className={`${isApolicePage ? 'h-10' : 'h-12'} sm:h-20 w-auto object-contain`}
                 />
               </Link>
               {currentEmpresa && (
