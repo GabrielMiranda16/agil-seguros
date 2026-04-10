@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, CheckCircle2, XCircle, Lock } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, Lock, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const logoUrl = "https://storage.googleapis.com/hostinger-horizons-assets-prod/bcb47250-76a3-434c-9312-56a9dba14a6f/247eb5219c397bb2ed2bcac42f39a442.png";
@@ -28,6 +28,8 @@ const ForceChangePassword = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const errors = validatePasswordStrength(newPassword);
   const isValid = errors.length === 0;
@@ -81,12 +83,17 @@ const ForceChangePassword = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label>Nova senha</Label>
-                <Input
-                  type="password"
-                  value={newPassword}
-                  onChange={e => setNewPassword(e.target.value)}
-                  className="border-[#c8e0f5] focus:border-[#003580] bg-[#f0f7ff]"
-                />
+                <div className="relative">
+                  <Input
+                    type={showNew ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    className="border-[#c8e0f5] focus:border-[#003580] bg-[#f0f7ff] pr-10"
+                  />
+                  <button type="button" onClick={() => setShowNew(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
 
               {/* Requisitos */}
@@ -102,12 +109,17 @@ const ForceChangePassword = () => {
 
               <div className="space-y-2">
                 <Label>Confirmar senha</Label>
-                <Input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={e => setConfirmPassword(e.target.value)}
-                  className="border-[#c8e0f5] focus:border-[#003580] bg-[#f0f7ff]"
-                />
+                <div className="relative">
+                  <Input
+                    type={showConfirm ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    className="border-[#c8e0f5] focus:border-[#003580] bg-[#f0f7ff] pr-10"
+                  />
+                  <button type="button" onClick={() => setShowConfirm(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
                 {confirmPassword.length > 0 && confirmPassword !== newPassword && (
                   <p className="text-xs text-red-500">As senhas não conferem.</p>
                 )}

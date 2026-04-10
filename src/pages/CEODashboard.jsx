@@ -35,6 +35,7 @@ import { beneficiariosService } from '@/services/beneficiariosService';
 import { solicitacoesService } from '@/services/solicitacoesService';
 import { coparticipacaoService } from '@/services/coparticipacaoService';
 import { authService } from '@/services/authService';
+import { apolicesService } from '@/services/apolicesService';
 
 const CEODashboard = () => {
   const { toast } = useToast();
@@ -46,6 +47,7 @@ const CEODashboard = () => {
   const [beneficiarios, setBeneficiarios] = useState([]);
   const [solicitacoes, setSolicitacoes] = useState([]);
   const [coparticipacoes, setCoparticipacoes] = useState([]);
+  const [apolices, setApolices] = useState([]);
   
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -104,6 +106,10 @@ const CEODashboard = () => {
       setSolicitacoes(solicitacoesData);
       setCoparticipacoes(coparticipacoesData);
       setUsers(usersData.data || []);
+      try {
+        const apolicesData = await apolicesService.getAllApolices();
+        setApolices(apolicesData);
+      } catch { setApolices([]); }
     } catch (error) {
       console.error("Error fetching data:", error);
       toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao carregar dados.' });
@@ -131,7 +137,24 @@ const CEODashboard = () => {
   const metrics = useMemo(() => {
     const currentYear = new Date().getFullYear();
     const currentMonth = `${currentYear}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-    
+
+    // Valor total de prêmios das apólices (soma valor_premio + prêmios por segmento SVD em dados_adicionais)
+    const valorTotalApolices = apolices.reduce((acc, ap) => {
+      let total = Number(ap.valor_premio) || 0;
+      if (ap.segmento === 'SAUDE_VIDA_ODONTO' && ap.dados_adicionais) {
+        total += Number(ap.dados_adicionais.valor_saude) || 0;
+        total += Number(ap.dados_adicionais.valor_vida) || 0;
+        total += Number(ap.dados_adicionais.valor_odonto) || 0;
+      }
+      return acc + total;
+    }, 0);
+
+    // Prêmio por segmento SVD
+    const svdApolices = apolices.filter(ap => ap.segmento === 'SAUDE_VIDA_ODONTO');
+    const valorSaude = svdApolices.reduce((acc, ap) => acc + (Number(ap.dados_adicionais?.valor_saude) || 0), 0);
+    const valorVida = svdApolices.reduce((acc, ap) => acc + (Number(ap.dados_adicionais?.valor_vida) || 0), 0);
+    const valorOdonto = svdApolices.reduce((acc, ap) => acc + (Number(ap.dados_adicionais?.valor_odonto) || 0), 0);
+
     return {
       totalEmpresas: empresas.length,
       totalBeneficiarios: beneficiarios.length,
@@ -140,11 +163,12 @@ const CEODashboard = () => {
       solicitacoesPendentes: solicitacoes.filter(s => s.status === 'PENDENTE').length,
       solicitacoesConcluidas: solicitacoes.filter(s => s.status === 'CONCLUIDA').length,
       coparticipacoesMes: coparticipacoes.filter(c => c.competencia === currentMonth).length,
-      valorTotalCoparticipacoes: coparticipacoes
-        .filter(c => c.competencia && c.competencia.startsWith(String(currentYear)))
-        .reduce((acc, curr) => acc + (Number(curr.valor) || 0), 0),
+      valorTotalApolices,
+      valorSaude,
+      valorVida,
+      valorOdonto,
     };
-  }, [empresas, beneficiarios, admins, solicitacoes, coparticipacoes]);
+  }, [empresas, beneficiarios, admins, solicitacoes, coparticipacoes, apolices]);
 
   // Chart Data Computation (Same as before)
   const chartData = useMemo(() => {
@@ -394,7 +418,10 @@ const CEODashboard = () => {
     { title: "Solicitações Pendentes", value: metrics.solicitacoesPendentes, icon: Clock, color: "text-yellow-600" },
     { title: "Solicitações Concluídas", value: metrics.solicitacoesConcluidas, icon: CheckCircle2, color: "text-green-600" },
     { title: "Coparticipações Mês", value: metrics.coparticipacoesMes, icon: FileText, color: "text-indigo-600" },
-    { title: "Valor Total Ano", value: metrics.valorTotalCoparticipacoes, icon: DollarSign, color: "text-orange-600", isCurrency: true },
+    { title: "Valor Total Apólices", value: metrics.valorTotalApolices, icon: DollarSign, color: "text-orange-600", isCurrency: true },
+    { title: "Prêmio Saúde", value: metrics.valorSaude, icon: DollarSign, color: "text-green-600", isCurrency: true },
+    { title: "Prêmio Vida", value: metrics.valorVida, icon: DollarSign, color: "text-blue-600", isCurrency: true },
+    { title: "Prêmio Odonto", value: metrics.valorOdonto, icon: DollarSign, color: "text-orange-500", isCurrency: true },
   ];
 
   return (

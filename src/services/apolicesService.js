@@ -135,6 +135,22 @@ export const apolicesService = {
     }
   },
 
+  async uploadContratoSegmento(file, apoliceId, segmento) {
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `contratos/${apoliceId}_${segmento}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('apolices-contratos')
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from('apolices-contratos').getPublicUrl(path);
+      return data.publicUrl;
+    } catch (error) {
+      console.error('Erro ao fazer upload do contrato:', error);
+      throw new Error(error?.message || 'Não foi possível fazer o upload do contrato.');
+    }
+  },
+
   async uploadContrato(file, apoliceId) {
     try {
       const ext = file.name.split('.').pop();

@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { differenceInMinutes } from 'date-fns';
 import { Helmet } from 'react-helmet';
+import { useNavigate } from 'react-router-dom';
 import { useCompany } from '@/contexts/CompanyContext';
 import DashboardLayout from '@/components/DashboardLayout';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -54,7 +56,8 @@ import {
   Clock,
   AlertCircle,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ArrowLeft
 } from 'lucide-react';
 import { formatDateTime } from '@/lib/utils';
 
@@ -65,6 +68,7 @@ import { empresasService } from '@/services/empresasService';
 
 const SolicitacoesPage = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [solicitacoes, setSolicitacoes] = useState([]);
   const [beneficiarios, setBeneficiarios] = useState([]);
   const [empresas, setEmpresas] = useState([]);
@@ -545,35 +549,26 @@ const SolicitacoesPage = () => {
       <Helmet><title>Solicitações - Sistema</title></Helmet>
       
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="text-white/80 hover:text-white hover:bg-white/10">
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
           <h1 className="text-3xl font-bold tracking-tight text-white">Solicitações</h1>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex gap-2 border-b">
-          <button
-            onClick={() => setActiveTab('pendentes')}
-            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-[2px] ${
-              activeTab === 'pendentes'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Pendentes & Em Processamento
-          </button>
-          <button
-            onClick={() => setActiveTab('concluidas')}
-            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-[2px] ${
-              activeTab === 'concluidas'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Concluídas
-          </button>
-        </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList className="bg-white/10 grid grid-cols-2 w-full sm:w-auto">
+            <TabsTrigger value="pendentes" className="text-white/80 data-[state=active]:bg-white data-[state=active]:text-[#003580]">
+              Pendentes & Em Processamento
+              {pendenteSolicitacoes.length > 0 && <span className="ml-1.5 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">{pendenteSolicitacoes.length}</span>}
+            </TabsTrigger>
+            <TabsTrigger value="concluidas" className="text-white/80 data-[state=active]:bg-white data-[state=active]:text-[#003580]">
+              Concluídas
+            </TabsTrigger>
+          </TabsList>
 
         {/* Tab Content: Pendentes */}
+        <TabsContent value="pendentes">
         {activeTab === 'pendentes' && (
           <Card className="border-t-0 rounded-tl-none">
             <CardHeader className="pb-3">
@@ -692,8 +687,10 @@ const SolicitacoesPage = () => {
             </CardContent>
           </Card>
         )}
+        </TabsContent>
 
         {/* Tab Content: Concluídas */}
+        <TabsContent value="concluidas">
         {activeTab === 'concluidas' && (
           <Card className="border-t-0 rounded-tl-none">
              <CardHeader className="pb-3">
@@ -816,6 +813,8 @@ const SolicitacoesPage = () => {
             </CardContent>
           </Card>
         )}
+        </TabsContent>
+        </Tabs>
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
