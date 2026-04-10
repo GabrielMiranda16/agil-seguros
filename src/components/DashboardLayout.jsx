@@ -346,10 +346,6 @@ const DashboardLayout = ({ children }) => {
                       <DollarSign className="h-5 w-5" /> Minha Coparticipação
                     </NavLink>
                   )}
-                  <button onClick={() => { navigate('/select-company'); setMobileMenuOpen(false); }}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors w-full">
-                    <Repeat className="h-5 w-5" /> Trocar CNPJ
-                  </button>
                 </>
               )}
 
