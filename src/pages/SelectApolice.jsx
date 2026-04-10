@@ -105,7 +105,7 @@ const SelectApolice = () => {
           )}
         </header>
 
-        <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 sm:pb-8">
           <h1 className="text-2xl font-bold text-white mb-6">{segConfig?.label || segmento}</h1>
 
           {apolices.length === 0 ? (
@@ -122,7 +122,9 @@ const SelectApolice = () => {
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
             >
               {apolices.map((apolice) => {
-                const status = apolicesService.getStatusApolice(apolice.vigencia_fim);
+                const isSVDSemVigencia = apolice.segmento === 'SAUDE_VIDA_ODONTO' && !apolice.vigencia_fim;
+                const statusRaw = apolicesService.getStatusApolice(apolice.vigencia_fim);
+                const status = isSVDSemVigencia ? { color: 'green', dias: undefined } : statusRaw;
                 const style = STATUS_STYLE[status.color];
 
                 return (
@@ -144,7 +146,7 @@ const SelectApolice = () => {
 
                       <div>
                         <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Apólice</p>
-                        <p className="text-lg font-bold text-gray-800">{apolice.numero_apolice || '—'}</p>
+                        <p className="text-lg font-bold text-gray-800">{apolice.numero_apolice || (isSVDSemVigencia ? 'Plano Saúde/Vida/Odonto' : '—')}</p>
                         <div className="flex items-center gap-2 mt-1">
                           <Building className="h-4 w-4 text-gray-400" />
                           <p className="text-sm text-gray-600 font-medium">{apolice.seguradora || '—'}</p>
@@ -154,7 +156,11 @@ const SelectApolice = () => {
                       <div className="border-t border-gray-100 pt-3 space-y-2">
                         <div className="flex items-center gap-2 text-sm text-gray-500">
                           <CalendarDays className="h-4 w-4 text-gray-400" />
-                          <span>{formatDate(apolice.vigencia_inicio)} → {formatDate(apolice.vigencia_fim)}</span>
+                          {isSVDSemVigencia ? (
+                            <span>Ativo desde {formatDate(apolice.vigencia_inicio || apolice.created_at?.split('T')[0])}</span>
+                          ) : (
+                            <span>{formatDate(apolice.vigencia_inicio)} → {formatDate(apolice.vigencia_fim)}</span>
+                          )}
                         </div>
                         {status.dias !== undefined && status.color !== 'green' && (
                           <p className="text-xs text-gray-400">
@@ -163,10 +169,13 @@ const SelectApolice = () => {
                               : `Vence em ${status.dias} dias`}
                           </p>
                         )}
+                        {isSVDSemVigencia && (
+                          <p className="text-xs text-green-600">Plano contínuo</p>
+                        )}
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <Badge className={`border ${style.badge}`}>{style.label}</Badge>
+                        <Badge className={`border ${style.badge}`}>{isSVDSemVigencia ? 'Ativa' : style.label}</Badge>
                         <ChevronRight className="h-5 w-5 text-gray-400" />
                       </div>
                     </div>
