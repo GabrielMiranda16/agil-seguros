@@ -41,7 +41,7 @@ const ForceChangePassword = () => {
     return '/select-segmento';
   };
 
-  if (user && !user.must_change_password) {
+  if (!user || !user.must_change_password) {
     return <Navigate to={getHomeRoute()} replace />;
   }
 
