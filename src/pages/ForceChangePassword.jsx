@@ -21,7 +21,7 @@ const Requisito = ({ ok, texto }) => (
 );
 
 const ForceChangePassword = () => {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -40,6 +40,14 @@ const ForceChangePassword = () => {
     if (user.perfil === 'ADM') return '/admin';
     return '/select-segmento';
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-soft-gradient">
+        <Loader2 className="h-8 w-8 animate-spin text-white" />
+      </div>
+    );
+  }
 
   if (!user || !user.must_change_password) {
     return <Navigate to={getHomeRoute()} replace />;
