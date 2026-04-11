@@ -101,15 +101,13 @@ const ForceChangePassword = () => {
               </div>
 
               {/* Requisitos */}
-              {newPassword.length > 0 && (
-                <div className="bg-gray-50 rounded-lg p-3 space-y-1.5">
-                  <Requisito ok={newPassword.length >= 6}        texto="Mínimo 6 caracteres" />
-                  <Requisito ok={/[A-Z]/.test(newPassword)}      texto="1 letra maiúscula" />
-                  <Requisito ok={/[a-z]/.test(newPassword)}      texto="1 letra minúscula" />
-                  <Requisito ok={/[0-9]/.test(newPassword)}      texto="1 número" />
-                  <Requisito ok={/[^a-zA-Z0-9]/.test(newPassword)} texto="1 caractere especial (!@#$%...)" />
-                </div>
-              )}
+              <div className="bg-gray-50 rounded-lg p-3 space-y-1.5">
+                <Requisito ok={newPassword.length >= 6}        texto="Mínimo 6 caracteres" />
+                <Requisito ok={/[A-Z]/.test(newPassword)}      texto="1 letra maiúscula" />
+                <Requisito ok={/[a-z]/.test(newPassword)}      texto="1 letra minúscula" />
+                <Requisito ok={/[0-9]/.test(newPassword)}      texto="1 número" />
+                <Requisito ok={/[^a-zA-Z0-9]/.test(newPassword)} texto="1 caractere especial (!@#$%...)" />
+              </div>
 
               <div className="space-y-2">
                 <Label>Confirmar senha</Label>
