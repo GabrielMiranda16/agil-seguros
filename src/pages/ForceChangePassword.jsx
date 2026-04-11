@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { authService } from '@/services/authService';
 import { validatePasswordStrength } from '@/lib/userValidator';
@@ -40,6 +40,10 @@ const ForceChangePassword = () => {
     if (user.perfil === 'ADM') return '/admin';
     return '/select-segmento';
   };
+
+  if (user && !user.must_change_password) {
+    return <Navigate to={getHomeRoute()} replace />;
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
