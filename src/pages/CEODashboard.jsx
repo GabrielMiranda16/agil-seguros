@@ -36,6 +36,7 @@ import { solicitacoesService } from '@/services/solicitacoesService';
 import { coparticipacaoService } from '@/services/coparticipacaoService';
 import { authService } from '@/services/authService';
 import { apolicesService } from '@/services/apolicesService';
+import { sendWelcomeEmail, generateTempPassword } from '@/services/emailService';
 
 const CEODashboard = () => {
   const { toast } = useToast();
@@ -53,7 +54,6 @@ const CEODashboard = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newAdminEmail, setNewAdminEmail] = useState('');
-  const [newAdminPassword, setNewAdminPassword] = useState('');
   const [newAdminPerfil, setNewAdminPerfil] = useState('ADM');
   const [activeTab, setActiveTab] = useState("dashboard");
   const [closedAlerts, setClosedAlerts] = useState([]);
@@ -257,27 +257,32 @@ const CEODashboard = () => {
 
   const handleAddAdmin = async (e) => {
     e.preventDefault();
-    if (!newAdminEmail || !newAdminPassword) {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Preencha todos os campos.' });
+    if (!newAdminEmail) {
+      toast({ variant: 'destructive', title: 'Erro', description: 'Preencha o e-mail.' });
       return;
     }
-    
+
     setIsSubmitting(true);
     try {
-      const newAdmin = {
+      const senhaTemporaria = generateTempPassword();
+      const createdUser = await authService.createUser({
         email: newAdminEmail,
-        password: newAdminPassword,
+        password: senhaTemporaria,
         perfil: newAdminPerfil,
         empresa_id: null,
         ativo: true,
         must_change_password: true,
-      };
+      });
 
-      const createdUser = await authService.createUser(newAdmin);
+      sendWelcomeEmail({
+        nomeCliente: newAdminEmail,
+        emailCliente: newAdminEmail,
+        senhaTemporaria,
+      }).catch(() => {});
+
       setUsers([...users, createdUser]);
-      toast({ title: 'Sucesso', description: `${newAdminPerfil === 'CEO' ? 'CEO' : 'Administrador'} adicionado.` });
+      toast({ title: 'Sucesso', description: `${newAdminPerfil === 'CEO' ? 'CEO' : 'Administrador'} adicionado. Senha temporária enviada por e-mail.` });
       setNewAdminEmail('');
-      setNewAdminPassword('');
       setNewAdminPerfil('ADM');
       setIsModalOpen(false);
     } catch (error) {
@@ -561,23 +566,7 @@ const CEODashboard = () => {
                           <div className="space-y-2">
                             <Label htmlFor="adm-email">Email</Label>
                             <Input id="adm-email" type="email" value={newAdminEmail} onChange={e => setNewAdminEmail(e.target.value)} />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="adm-password">Senha temporária</Label>
-                            <Input id="adm-password" type="password" value={newAdminPassword} onChange={e => setNewAdminPassword(e.target.value)} />
-                            <div className="mt-1 bg-gray-50 rounded-lg p-2.5 space-y-1">
-                              {[
-                                { ok: newAdminPassword.length >= 6,           txt: 'Mínimo 6 caracteres' },
-                                { ok: /[A-Z]/.test(newAdminPassword),         txt: '1 letra maiúscula' },
-                                { ok: /[a-z]/.test(newAdminPassword),         txt: '1 letra minúscula' },
-                                { ok: /[0-9]/.test(newAdminPassword),         txt: '1 número' },
-                                { ok: /[^a-zA-Z0-9]/.test(newAdminPassword),  txt: '1 caractere especial' },
-                              ].map(({ ok, txt }) => (
-                                <div key={txt} className={`flex items-center gap-1.5 text-xs ${ok ? 'text-green-600' : 'text-gray-400'}`}>
-                                  <span>{ok ? '✓' : '○'}</span> {txt}
-                                </div>
-                              ))}
-                            </div>
+                            <p className="text-xs text-gray-400">Uma senha temporária será gerada e enviada por e-mail automaticamente.</p>
                           </div>
                         </div>
                         <DialogFooter>
