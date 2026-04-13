@@ -4,7 +4,7 @@ import { authService } from '@/services/authService';
 
 const AuthContext = createContext({});
 
-const SESSION_VERSION = '2';
+const SESSION_VERSION = '3';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
