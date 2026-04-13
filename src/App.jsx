@@ -20,6 +20,7 @@ import SolicitacoesPage from '@/pages/SolicitacoesPage';
 import CoparticipacaoPage from '@/pages/CoparticipacaoPage';
 import CoparticipacaoClientePage from '@/pages/CoparticipacaoClientePage';
 import ForceChangePassword from '@/pages/ForceChangePassword';
+import TermosAceite from '@/pages/TermosAceite';
 
 const AppRoutes = () => {
   const { user, authLoading } = useAuth();
@@ -47,8 +48,16 @@ const AppRoutes = () => {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-      <Route 
-        path="/ceo" 
+      <Route
+        path="/termos-aceite"
+        element={
+          <ProtectedRoute allowedRoles={['CEO', 'ADM', 'CLIENTE']}>
+            <TermosAceite />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/ceo"
         element={
           <ProtectedRoute allowedRoles={['CEO']}>
             <CEODashboard />
