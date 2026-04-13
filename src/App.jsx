@@ -13,7 +13,6 @@ import AdminClientePage from '@/pages/AdminClientePage';
 import AdminSegmentoPage from '@/pages/AdminSegmentoPage';
 import ClientDashboard from '@/pages/ClientDashboard';
 import UnauthorizedPage from '@/pages/Unauthorized';
-import SelectCompanyPage from '@/pages/SelectCompany';
 import SelectSegmento from '@/pages/SelectSegmento';
 import SelectApolice from '@/pages/SelectApolice';
 import ApoliceDashboard from '@/pages/ApoliceDashboard';
@@ -111,14 +110,6 @@ const AppRoutes = () => {
             <CoparticipacaoClientePage />
           </ProtectedRoute>
         } 
-      />
-      <Route
-        path="/select-company"
-        element={
-          <ProtectedRoute allowedRoles={['CLIENTE', 'CEO', 'ADM']}>
-            <SelectCompanyPage />
-          </ProtectedRoute>
-        }
       />
       <Route
         path="/select-segmento"

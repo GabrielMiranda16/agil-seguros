@@ -559,7 +559,7 @@ const SolicitacoesPage = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="bg-white/10 grid grid-cols-2 w-full sm:w-auto">
             <TabsTrigger value="pendentes" className="text-white/80 data-[state=active]:bg-white data-[state=active]:text-[#003580]">
-              Pendentes & Em Processamento
+              Pendentes
               {pendenteSolicitacoes.length > 0 && <span className="ml-1.5 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">{pendenteSolicitacoes.length}</span>}
             </TabsTrigger>
             <TabsTrigger value="concluidas" className="text-white/80 data-[state=active]:bg-white data-[state=active]:text-[#003580]">
@@ -937,7 +937,7 @@ const SolicitacoesPage = () => {
 
       {/* Modal para Adicionar Dados do Beneficiário */}
       <Dialog open={isEditBeneficiarioModalOpen} onOpenChange={setIsEditBeneficiarioModalOpen}>
-        <DialogContent className="sm:max-w-[800px] overflow-y-auto max-h-[90vh]">
+        <DialogContent className="sm:max-w-[800px] overflow-y-auto overflow-x-hidden sm:max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Adicionar Dados do Beneficiário</DialogTitle>
             <DialogDescription>

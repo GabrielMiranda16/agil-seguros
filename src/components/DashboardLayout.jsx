@@ -250,13 +250,6 @@ const DashboardLayout = ({ children }) => {
                       <Lock className="mr-2 h-4 w-4" /> Alterar Senha
                     </Button>
                   </DropdownMenuItem>
-                  {isClientDashboard && user?.perfil === 'CLIENTE' && (
-                    <DropdownMenuItem asChild>
-                      <Button variant="ghost" className="w-full justify-start cursor-pointer font-normal" onClick={() => navigate('/select-company')}>
-                        <Repeat className="mr-2 h-4 w-4" /> Trocar CNPJ
-                      </Button>
-                    </DropdownMenuItem>
-                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Button variant="ghost" className="w-full justify-start cursor-pointer text-red-600 hover:text-red-600 hover:bg-red-50" onClick={handleLogout}>
@@ -303,10 +296,6 @@ const DashboardLayout = ({ children }) => {
                     className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}>
                     <ClipboardList className="h-5 w-5" /> Solicitações
                   </NavLink>
-                  <NavLink to="/coparticipacao" onClick={() => setMobileMenuOpen(false)}
-                    className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}>
-                    <DollarSign className="h-5 w-5" /> Coparticipação
-                  </NavLink>
                 </>
               )}
 
@@ -320,10 +309,6 @@ const DashboardLayout = ({ children }) => {
                   <NavLink to="/solicitacoes" onClick={() => setMobileMenuOpen(false)}
                     className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}>
                     <ClipboardList className="h-5 w-5" /> Solicitações
-                  </NavLink>
-                  <NavLink to="/coparticipacao" onClick={() => setMobileMenuOpen(false)}
-                    className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}>
-                    <DollarSign className="h-5 w-5" /> Coparticipação
                   </NavLink>
                   {isAdminViewingClient && (
                     <button onClick={() => { handleGoBack(); setMobileMenuOpen(false); }}

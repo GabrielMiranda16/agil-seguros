@@ -443,12 +443,68 @@ const AdminDashboard = () => {
             )}
           </div>
 
+          {/* Metric Cards */}
+          <div>
+            <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0">
+              <div className="min-w-[calc(100vw-3rem)] sm:min-w-0 snap-start flex-shrink-0 sm:flex-shrink">
+                <Card
+                  className={`bg-white border border-gray-100 shadow-sm transition-all ${totalPendentes > 0 ? 'cursor-pointer hover:shadow-md' : ''}`}
+                  onClick={() => totalPendentes > 0 && navigate('/solicitacoes')}
+                >
+                  <CardContent className="pt-6 pb-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Solicitações</p>
+                        <p className="text-5xl font-bold mt-1 text-gray-900">{isLoading ? '—' : totalPendentes}</p>
+                        <p className="text-gray-400 text-xs mt-1">
+                          {totalPendentes > 0 ? 'pendentes — clique para ver' : 'nenhuma pendente'}
+                        </p>
+                      </div>
+                      <AlertTriangle className={`h-14 w-14 opacity-60 ${totalPendentes > 0 ? 'text-red-500' : 'text-gray-300'}`} />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="min-w-[calc(100vw-3rem)] sm:min-w-0 snap-start flex-shrink-0 sm:flex-shrink">
+                <Card className="bg-white border border-gray-100 shadow-sm">
+                  <CardContent className="pt-6 pb-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Clientes</p>
+                        <p className="text-5xl font-bold mt-1 text-gray-900">{isLoading ? '—' : matrizes.length}</p>
+                        <p className="text-gray-400 text-xs mt-1">empresas cadastradas</p>
+                      </div>
+                      <Users className="h-14 w-14 text-blue-500 opacity-60" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="min-w-[calc(100vw-3rem)] sm:min-w-0 snap-start flex-shrink-0 sm:flex-shrink">
+                <Card className="bg-white border border-gray-100 shadow-sm">
+                  <CardContent className="pt-6 pb-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Apólices Ativas</p>
+                        <p className="text-5xl font-bold mt-1 text-gray-900">{isLoading ? '—' : apolicesAtivas}</p>
+                        <p className="text-gray-400 text-xs mt-1">em vigência</p>
+                      </div>
+                      <FileText className="h-14 w-14 text-emerald-500 opacity-60" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 text-center mt-1 sm:hidden">arraste para ver mais →</p>
+          </div>
+
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
             <Input
               className="pl-11 h-12 text-base rounded-xl border-gray-200 shadow-sm"
-              placeholder="Buscar por CNPJ, nome da empresa, nome da pessoa ou CPF..."
+              placeholder="Buscar por CNPJ, Empresa ou Nome..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
             />
@@ -457,53 +513,6 @@ const AdminDashboard = () => {
                 <X className="h-4 w-4" />
               </button>
             )}
-          </div>
-
-          {/* Metric Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Card className="bg-[#003580] text-white border-0 shadow-lg">
-              <CardContent className="pt-6 pb-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-blue-100 text-sm font-medium uppercase tracking-wide">Clientes</p>
-                    <p className="text-5xl font-bold mt-1">{isLoading ? '—' : matrizes.length}</p>
-                    <p className="text-blue-200 text-xs mt-1">empresas cadastradas</p>
-                  </div>
-                  <Users className="h-14 w-14 opacity-20" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-emerald-500 to-emerald-700 text-white border-0 shadow-lg">
-              <CardContent className="pt-6 pb-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-emerald-100 text-sm font-medium uppercase tracking-wide">Apólices Ativas</p>
-                    <p className="text-5xl font-bold mt-1">{isLoading ? '—' : apolicesAtivas}</p>
-                    <p className="text-emerald-200 text-xs mt-1">em vigência</p>
-                  </div>
-                  <FileText className="h-14 w-14 opacity-20" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card
-              className={`text-white border-0 shadow-lg transition-all ${totalPendentes > 0 ? 'bg-gradient-to-br from-red-500 to-red-700 cursor-pointer hover:shadow-xl' : 'bg-gradient-to-br from-gray-400 to-gray-600'}`}
-              onClick={() => totalPendentes > 0 && navigate('/solicitacoes')}
-            >
-              <CardContent className="pt-6 pb-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className={`text-sm font-medium uppercase tracking-wide ${totalPendentes > 0 ? 'text-red-100' : 'text-gray-200'}`}>Solicitações</p>
-                    <p className="text-5xl font-bold mt-1">{isLoading ? '—' : totalPendentes}</p>
-                    <p className={`text-xs mt-1 ${totalPendentes > 0 ? 'text-red-200' : 'text-gray-300'}`}>
-                      {totalPendentes > 0 ? 'pendentes — clique para ver' : 'nenhuma pendente'}
-                    </p>
-                  </div>
-                  <AlertTriangle className="h-14 w-14 opacity-20" />
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Company List */}
@@ -613,7 +622,7 @@ const AdminDashboard = () => {
         setIsNewClienteModalOpen(open);
         if (!open) { setTipoPessoa('PJ'); setNewEmpresa({ razao_social: '', nome_fantasia: '', cnpj: '', endereco_completo: '', email_cliente: '', data_nascimento: '', cep: '', rua: '', bairro: '', cidade: '', estado: '', numero: '', complemento: '' }); }
       }}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl sm:max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Novo Cliente</DialogTitle></DialogHeader>
           <form onSubmit={validateAndSubmitMatriz}>
             <div className="py-4 space-y-4">
@@ -774,7 +783,7 @@ const AdminDashboard = () => {
       {/* Modal Editar Acesso do Cliente */}
       {editingEmpresa && (
         <Dialog open={isEditEmpresaModalOpen} onOpenChange={setIsEditEmpresaModalOpen}>
-          <DialogContent>
+          <DialogContent className="sm:max-w-lg overflow-y-auto overflow-x-hidden">
             <DialogHeader>
               <DialogTitle>Editar Acesso do Cliente</DialogTitle>
               <p className="text-sm text-muted-foreground">{editingEmpresa.nome_fantasia || editingEmpresa.razao_social}</p>

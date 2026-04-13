@@ -11,7 +11,7 @@ const MetricCard = ({ title, value, icon, color, isCurrency = false }) => {
 
   return (
     <motion.div
-      whileHover={{ y: -5, scale: 1.02 }}
+      whileHover={{ }}
       transition={{ type: 'spring', stiffness: 300 }}
     >
       <Card className="hover:border-blue-400 transition-colors duration-300 shadow-sm hover:shadow-md">

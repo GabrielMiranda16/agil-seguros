@@ -905,14 +905,14 @@ const ClientDashboard = () => {
   }
 
   if (!empresaId_num || isNaN(empresaId_num)) {
-    return <Navigate to="/select-company" />;
+    return <Navigate to="/select-segmento" />;
   }
 
   if (user.perfil === 'CLIENTE') {
     const matriz = empresas.find(e => e.id === user.empresa_matriz_id);
     const filiais = empresas.filter(e => e.empresa_matriz_id === user.empresa_matriz_id);
     const accessibleEmpresasIds = [matriz?.id, ...filiais.map(f => f.id)].filter(Boolean);
-    if (empresas.length > 0 && !accessibleEmpresasIds.includes(empresaId)) { return <Navigate to="/select-company" replace />; }
+    if (empresas.length > 0 && !accessibleEmpresasIds.includes(empresaId)) { return <Navigate to="/select-segmento" replace />; }
   }
 
   if (!empresa && !isLoading && empresas.length > 0) { 
@@ -925,15 +925,18 @@ const ClientDashboard = () => {
       <DashboardLayout>
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-             {isLoading ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[108px]" />) : (
-                <>
-                  <MetricCard title="Total de Beneficiários" value={metrics.total} icon={Users} color="text-gray-600" />
-                  <MetricCard title="Titulares" value={metrics.titulares} icon={User} color="text-blue-600" />
-                  <MetricCard title="Dependentes" value={metrics.dependentes} icon={Users} color="text-purple-600" />
-                  <MetricCard title="Beneficiários Ativos" value={metrics.ativos} icon={UserCheck} color="text-green-600" />
-                </>
-             )}
+          <div>
+            <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-2 md:overflow-visible md:pb-0 lg:grid-cols-4">
+               {isLoading ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[108px] min-w-[calc(100vw-3rem)] md:min-w-0 snap-start" />) : (
+                  <>
+                    <div className="min-w-[calc(100vw-3rem)] md:min-w-0 snap-start flex-shrink-0 md:flex-shrink"><MetricCard title="Total de Beneficiários" value={metrics.total} icon={Users} color="text-gray-600" /></div>
+                    <div className="min-w-[calc(100vw-3rem)] md:min-w-0 snap-start flex-shrink-0 md:flex-shrink"><MetricCard title="Titulares" value={metrics.titulares} icon={User} color="text-blue-600" /></div>
+                    <div className="min-w-[calc(100vw-3rem)] md:min-w-0 snap-start flex-shrink-0 md:flex-shrink"><MetricCard title="Dependentes" value={metrics.dependentes} icon={Users} color="text-purple-600" /></div>
+                    <div className="min-w-[calc(100vw-3rem)] md:min-w-0 snap-start flex-shrink-0 md:flex-shrink"><MetricCard title="Beneficiários Ativos" value={metrics.ativos} icon={UserCheck} color="text-green-600" /></div>
+                  </>
+               )}
+            </div>
+            <p className="text-xs text-gray-400 text-center mt-1 md:hidden">arraste para ver mais →</p>
           </div>
           
           <Card>
@@ -1048,7 +1051,7 @@ const ClientDashboard = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <ClipboardList className="h-5 w-5" /> Solicitações
+                  <ClipboardList className="h-5 w-5" /> Histórico de Solicitações
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -1064,7 +1067,7 @@ const ClientDashboard = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {solPaginadas.map(s => {
+                      {todasSolicitacoesDaEmpresa.slice(0, 10).map(s => {
                         const ben = beneficiarios.find(b => b.id === s.beneficiario_id);
                         const statusColors = {
                           'PENDENTE': 'bg-yellow-100 text-yellow-800',
@@ -1087,24 +1090,13 @@ const ClientDashboard = () => {
                     </TableBody>
                   </Table>
                 </div>
-                {solTotalPages > 1 && (
-                  <div className="flex items-center justify-end space-x-2 py-4">
-                    <Button variant="outline" size="sm" onClick={() => setSolCurrentPage(p => Math.max(p - 1, 1))} disabled={solCurrentPage === 1}>
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <div className="text-sm text-gray-600">Página {solCurrentPage} de {solTotalPages}</div>
-                    <Button variant="outline" size="sm" onClick={() => setSolCurrentPage(p => Math.min(p + 1, solTotalPages))} disabled={solCurrentPage === solTotalPages}>
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
               </CardContent>
             </Card>
           )}
         </motion.div>
 
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}><DialogContent className="max-w-2xl w-[90vw] max-h-[90vh] overflow-hidden p-0 flex flex-col"><DialogHeader className="px-4 pt-4"><DialogTitle>{editingBeneficiario ? 'Editar' : 'Adicionar'} Beneficiário</DialogTitle></DialogHeader><form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">{isModalOpen && <ModalFormContent formData={formData} setFormData={setFormData} age={age} titulares={titulares} beneficiario={editingBeneficiario} isCliente={user.perfil === 'CLIENTE'} openSolicitacaoDialog={openSolicitacaoDialog} renderPlanStatusCard={renderPlanStatusCard} setIsExclusaoModalOpen={setIsExclusaoModalOpen} setExclusaoData={setExclusaoData} handleSolicitarAlteracao={handleSolicitarAlteracao} />}<DialogFooter className="px-4 mt-4 pb-4"><Button type="submit" disabled={isSubmitting} className="bg-[#003580] hover:bg-[#002060] text-white">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar</Button></DialogFooter></form></DialogContent></Dialog>
-        {editingBeneficiario && user.perfil === 'CLIENTE' && (<Dialog open={isSolicitacaoDialogOpen} onOpenChange={(open) => { if (!open) setIsSolicitacaoDialogOpen(false); }}><DialogContent className="sm:max-w-[425px] max-h-[80vh] overflow-y-auto"><DialogHeader><DialogTitle>Solicitar Inclusão</DialogTitle><DialogDescription>Selecione os planos que deseja solicitar para este beneficiário.</DialogDescription></DialogHeader><div className="py-4 space-y-4">{renderPlanSelectionItem('saude', 'Plano de Saúde', Hospital, 'text-green-600')}{renderPlanSelectionItem('vida', 'Seguro de Vida', Heart, 'text-blue-600')}{renderPlanSelectionItem('odonto', 'Plano Odonto', Smile, 'text-orange-600')}</div><DialogFooter><Button variant="outline" onClick={() => setIsSolicitacaoDialogOpen(false)}>Fechar</Button><Button onClick={confirmSolicitacao}>Confirmar Solicitação</Button></DialogFooter></DialogContent></Dialog>)}
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}><DialogContent className="sm:max-w-2xl sm:max-h-[90vh] overflow-hidden p-0 flex flex-col"><DialogHeader className="px-4 pt-4"><DialogTitle>{editingBeneficiario ? 'Editar' : 'Adicionar'} Beneficiário</DialogTitle></DialogHeader><form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">{isModalOpen && <ModalFormContent formData={formData} setFormData={setFormData} age={age} titulares={titulares} beneficiario={editingBeneficiario} isCliente={user.perfil === 'CLIENTE'} openSolicitacaoDialog={openSolicitacaoDialog} renderPlanStatusCard={renderPlanStatusCard} setIsExclusaoModalOpen={setIsExclusaoModalOpen} setExclusaoData={setExclusaoData} handleSolicitarAlteracao={handleSolicitarAlteracao} />}<DialogFooter className="px-4 mt-4 pb-4"><Button type="submit" disabled={isSubmitting} className="bg-[#003580] hover:bg-[#002060] text-white">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar</Button></DialogFooter></form></DialogContent></Dialog>
+        {editingBeneficiario && user.perfil === 'CLIENTE' && (<Dialog open={isSolicitacaoDialogOpen} onOpenChange={(open) => { if (!open) setIsSolicitacaoDialogOpen(false); }}><DialogContent className="sm:max-w-[425px] sm:max-h-[80vh] overflow-y-auto"><DialogHeader><DialogTitle>Solicitar Inclusão</DialogTitle><DialogDescription>Selecione os planos que deseja solicitar para este beneficiário.</DialogDescription></DialogHeader><div className="py-4 space-y-4">{renderPlanSelectionItem('saude', 'Plano de Saúde', Hospital, 'text-green-600')}{renderPlanSelectionItem('vida', 'Seguro de Vida', Heart, 'text-blue-600')}{renderPlanSelectionItem('odonto', 'Plano Odonto', Smile, 'text-orange-600')}</div><DialogFooter><Button variant="outline" onClick={() => setIsSolicitacaoDialogOpen(false)}>Fechar</Button><Button onClick={confirmSolicitacao}>Confirmar Solicitação</Button></DialogFooter></DialogContent></Dialog>)}
         <Dialog open={isExclusaoModalOpen} onOpenChange={setIsExclusaoModalOpen}><DialogContent className="w-[95vw] sm:max-w-md"><DialogHeader><DialogTitle>Solicitar Exclusão de Plano</DialogTitle></DialogHeader><div className="grid gap-4 py-4"><div className="grid gap-2"><Label htmlFor="dataExclusao">Data da Exclusão</Label><Input id="dataExclusao" type="date" value={exclusaoData.dataExclusao} onChange={(e) => setExclusaoData({...exclusaoData, dataExclusao: e.target.value})} /></div><div className="grid gap-2"><Label htmlFor="motivo">Motivo</Label><Textarea id="motivo" value={exclusaoData.motivo} onChange={(e) => setExclusaoData({...exclusaoData, motivo: e.target.value})} /></div></div><DialogFooter><Button variant="outline" onClick={() => setIsExclusaoModalOpen(false)}>Cancelar</Button><Button onClick={() => { handleSolicitarExclusao(exclusaoData.beneficiarioId, exclusaoData.tipoPlano, exclusaoData.motivo, exclusaoData.dataExclusao); }}>Enviar Solicitação</Button></DialogFooter></DialogContent></Dialog>
         <Dialog open={isAlteracaoModalOpen} onOpenChange={setIsAlteracaoModalOpen}><DialogContent><DialogHeader><DialogTitle>Solicitar Alteração de Plano</DialogTitle><DialogDescription>Você está solicitando a alteração do plano <strong>{alteracaoData.tipoPlano}</strong>.</DialogDescription></DialogHeader><div className="py-4 text-sm text-gray-600"><p>Ao confirmar, uma solicitação de alteração será enviada para a administração.</p><p className="mt-2">Você poderá acompanhar o status desta solicitação no painel do beneficiário.</p></div><DialogFooter><Button variant="outline" onClick={() => setIsAlteracaoModalOpen(false)}>Cancelar</Button><Button onClick={confirmAlteracao} className="bg-blue-600 hover:bg-blue-700 text-white">Confirmar Alteração</Button></DialogFooter></DialogContent></Dialog>
 

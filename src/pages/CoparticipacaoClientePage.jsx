@@ -274,6 +274,9 @@ const CoparticipacaoClientePage = () => {
                 <FileText className="h-5 w-5" /> Resumo {tipoLabel}
               </CardTitle>
               <CardDescription className="text-blue-100">
+                {(() => { const emp = empresas.find(e => String(e.id) === String(empresaId)); return emp ? `${emp.nome_fantasia || emp.razao_social} · ${emp.cnpj || emp.cpf || '—'}` : ''; })()}
+              </CardDescription>
+              <CardDescription className="text-blue-100">
                 Total de coparticipações de {tipoLabel.toLowerCase()} lançadas em {getMonthName(selectedMonth)} de {selectedYear}
               </CardDescription>
             </CardHeader>
