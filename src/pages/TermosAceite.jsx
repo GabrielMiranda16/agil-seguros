@@ -55,15 +55,19 @@ const TermosAceite = () => {
       const dataAceite = new Date().toISOString();
       const dataFormatada = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 
-      // 1. Atualiza o usuário com todos os dados do aceite
+      // 1. Atualiza os campos críticos do aceite
       await authService.updateUser(user.id, {
         aceite_termos: true,
         aceite_whatsapp: aceitouWhatsapp,
         aceite_email: aceitouEmail,
         data_aceite_termos: dataAceite,
+      });
+
+      // 1b. Campos extras (não bloqueiam se falharem)
+      authService.updateUser(user.id, {
         ip_aceite: userIp,
         versao_termos: TERMS_VERSION,
-      });
+      }).catch(() => {});
 
       // 2. Registra log de auditoria (não bloqueia o fluxo)
       supabase.from('termos_log').insert({
