@@ -4,6 +4,8 @@ import { authService } from '@/services/authService';
 
 const AuthContext = createContext({});
 
+const SESSION_VERSION = '2';
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -11,6 +13,13 @@ export const AuthProvider = ({ children }) => {
   const [empresasMatriz, setEmpresasMatriz] = useState([]);
 
   useEffect(() => {
+    // Invalida sessões antigas de versões anteriores
+    const storedVersion = localStorage.getItem('session_version');
+    if (storedVersion !== SESSION_VERSION) {
+      localStorage.removeItem('user');
+      localStorage.setItem('session_version', SESSION_VERSION);
+    }
+
     // Check for logged in user in localStorage on mount
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
