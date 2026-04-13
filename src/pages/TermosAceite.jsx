@@ -101,8 +101,8 @@ const TermosAceite = () => {
 
       updateUser({ ...user, aceite_termos: true, aceite_whatsapp: aceitouWhatsapp, aceite_email: aceitouEmail });
       navigate(getHomeRoute(), { replace: true });
-    } catch {
-      toast({ variant: 'destructive', title: 'Erro ao salvar. Tente novamente.' });
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Erro ao salvar.', description: err?.message || JSON.stringify(err) });
     } finally {
       setIsSubmitting(false);
     }
