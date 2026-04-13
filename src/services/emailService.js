@@ -2,8 +2,7 @@ const SERVICE_ID                  = import.meta.env.VITE_EMAILJS_SERVICE_ID;
 const TEMPLATE_ID                 = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
 const PUBLIC_KEY                  = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 const TEMPLATE_TERMOS_CLIENTE     = import.meta.env.VITE_EMAILJS_TEMPLATE_TERMOS_CLIENTE;
-const TEMPLATE_TERMOS_EMPRESA     = import.meta.env.VITE_EMAILJS_TEMPLATE_TERMOS_EMPRESA;
-const EMPRESA_EMAIL               = import.meta.env.VITE_EMPRESA_EMAIL;
+const EMPRESA_EMAIL               = 'contato@segurosagil.com.br';
 
 export function generateTempPassword(length = 10) {
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#!';
@@ -42,22 +41,20 @@ export async function sendTermosConfirmacaoCliente({ nomeCliente, emailCliente, 
 }
 
 export async function sendTermosNotificacaoEmpresa({ nomeCliente, emailCliente, versao, data, ip, aceitouWhatsapp, aceitouEmail }) {
-  if (!SERVICE_ID || !TEMPLATE_TERMOS_EMPRESA || !PUBLIC_KEY || !EMPRESA_EMAIL) return { ok: false };
+  if (!SERVICE_ID || !TEMPLATE_TERMOS_CLIENTE || !PUBLIC_KEY) return { ok: false };
   try {
     const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         service_id: SERVICE_ID,
-        template_id: TEMPLATE_TERMOS_EMPRESA,
+        template_id: TEMPLATE_TERMOS_CLIENTE,
         user_id: PUBLIC_KEY,
         template_params: {
+          to_name: `[EMPRESA] Novo aceite: ${nomeCliente}`,
           to_email: EMPRESA_EMAIL,
-          cliente_nome: nomeCliente,
-          cliente_email: emailCliente,
           versao_termos: versao,
-          data_aceite: data,
-          ip_aceite: ip,
+          data_aceite: `${data} | Cliente: ${emailCliente} | IP: ${ip}`,
           aceite_whatsapp: aceitouWhatsapp ? 'Sim' : 'Não',
           aceite_email: aceitouEmail ? 'Sim' : 'Não',
           from_name: 'Ágil Seguros - Sistema',
