@@ -35,7 +35,7 @@ const TermosAceite = () => {
   }
 
   if (!user) return <Navigate to="/login" replace />;
-  if (user.aceite_termos !== false) return <Navigate to={getHomeRoute()} replace />;
+  if (user.aceite_termos === true) return <Navigate to={getHomeRoute()} replace />;
 
   const handleSubmit = async () => {
     if (!aceitouTermos) return;
