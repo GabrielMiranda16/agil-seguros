@@ -64,19 +64,10 @@ const TermosAceite = () => {
       });
 
       // 1b. Campos extras (não bloqueiam se falharem)
-      authService.updateUser(user.id, {
-        ip_aceite: userIp,
-        versao_termos: TERMS_VERSION,
-      }).catch(() => {});
+      (async () => { try { await authService.updateUser(user.id, { ip_aceite: userIp, versao_termos: TERMS_VERSION }); } catch {} })();
 
       // 2. Registra log de auditoria (não bloqueia o fluxo)
-      supabase.from('termos_log').insert({
-        user_id: user.id,
-        versao_termos: TERMS_VERSION,
-        ip_aceite: userIp,
-        aceite_whatsapp: aceitouWhatsapp,
-        aceite_email: aceitouEmail,
-      }).catch(() => {});
+      (async () => { try { await supabase.from('termos_log').insert({ user_id: user.id, versao_termos: TERMS_VERSION, ip_aceite: userIp, aceite_whatsapp: aceitouWhatsapp, aceite_email: aceitouEmail }); } catch {} })();
 
       // 3. Email de confirmação para o cliente (não bloqueia o fluxo em caso de erro)
       sendTermosConfirmacaoCliente({
