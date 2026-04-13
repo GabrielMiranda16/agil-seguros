@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { authService } from '@/services/authService';
+import { sendTermosConfirmacaoCliente, sendTermosNotificacaoEmpresa } from '@/services/emailService';
+import { supabase } from '@/lib/customSupabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Loader2, ShieldCheck, MessageCircle, Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+const TERMS_VERSION = '1.1';
 const logoUrl = "https://storage.googleapis.com/hostinger-horizons-assets-prod/bcb47250-76a3-434c-9312-56a9dba14a6f/247eb5219c397bb2ed2bcac42f39a442.png";
 
 const TermosAceite = () => {
@@ -18,6 +21,14 @@ const TermosAceite = () => {
   const [aceitouWhatsapp, setAceitouWhatsapp] = useState(false);
   const [aceitouEmail, setAceitouEmail] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userIp, setUserIp] = useState('desconhecido');
+
+  useEffect(() => {
+    fetch('https://api.ipify.org?format=json')
+      .then(r => r.json())
+      .then(d => setUserIp(d.ip))
+      .catch(() => setUserIp('desconhecido'));
+  }, []);
 
   const getHomeRoute = () => {
     if (!user) return '/login';
@@ -41,12 +52,49 @@ const TermosAceite = () => {
     if (!aceitouTermos) return;
     setIsSubmitting(true);
     try {
+      const dataAceite = new Date().toISOString();
+      const dataFormatada = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+
+      // 1. Atualiza o usuário com todos os dados do aceite
       await authService.updateUser(user.id, {
         aceite_termos: true,
         aceite_whatsapp: aceitouWhatsapp,
         aceite_email: aceitouEmail,
-        data_aceite_termos: new Date().toISOString(),
+        data_aceite_termos: dataAceite,
+        ip_aceite: userIp,
+        versao_termos: TERMS_VERSION,
       });
+
+      // 2. Registra log de auditoria
+      await supabase.from('termos_log').insert({
+        user_id: user.id,
+        versao_termos: TERMS_VERSION,
+        ip_aceite: userIp,
+        aceite_whatsapp: aceitouWhatsapp,
+        aceite_email: aceitouEmail,
+      });
+
+      // 3. Email de confirmação para o cliente (não bloqueia o fluxo em caso de erro)
+      sendTermosConfirmacaoCliente({
+        nomeCliente: user.name || user.email,
+        emailCliente: user.email,
+        versao: TERMS_VERSION,
+        data: dataFormatada,
+        aceitouWhatsapp,
+        aceitouEmail,
+      }).catch(() => {});
+
+      // 4. Notificação para a empresa
+      sendTermosNotificacaoEmpresa({
+        nomeCliente: user.name || user.email,
+        emailCliente: user.email,
+        versao: TERMS_VERSION,
+        data: dataFormatada,
+        ip: userIp,
+        aceitouWhatsapp,
+        aceitouEmail,
+      }).catch(() => {});
+
       updateUser({ ...user, aceite_termos: true, aceite_whatsapp: aceitouWhatsapp, aceite_email: aceitouEmail });
       navigate(getHomeRoute(), { replace: true });
     } catch {
@@ -72,7 +120,7 @@ const TermosAceite = () => {
             <ShieldCheck className="h-7 w-7 text-white shrink-0" />
             <div>
               <h1 className="text-white font-bold text-lg leading-tight">Termos de Uso e Privacidade</h1>
-              <p className="text-white/70 text-xs mt-0.5">Leia com atenção antes de continuar</p>
+              <p className="text-white/70 text-xs mt-0.5">Versão {TERMS_VERSION} — Leia com atenção antes de continuar</p>
             </div>
           </div>
 
@@ -84,31 +132,39 @@ const TermosAceite = () => {
             </div>
             <div>
               <p className="font-semibold text-gray-800 mb-1">2. Dados Coletados</p>
-              <p>Coletamos dados de identificação pessoal (nome, CPF/CNPJ, data de nascimento, endereço, telefone e e-mail), dados de beneficiários vinculados e informações relativas às apólices de seguros contratadas.</p>
+              <p>Coletamos dados de identificação pessoal (nome, CPF/CNPJ, data de nascimento, endereço, telefone e e-mail), dados de beneficiários vinculados e informações relativas às apólices de seguros contratadas, incluindo o endereço IP e data/hora de acesso para fins de segurança e auditoria.</p>
             </div>
             <div>
-              <p className="font-semibold text-gray-800 mb-1">3. Finalidade do Tratamento</p>
-              <p>Os dados são utilizados exclusivamente para: (a) gestão e administração de apólices de seguros; (b) comunicação sobre vigências, renovações e alterações contratuais; (c) cumprimento de obrigações legais e regulatórias; (d) prestação de suporte ao cliente.</p>
+              <p className="font-semibold text-gray-800 mb-1">3. Finalidade e Base Legal do Tratamento</p>
+              <p>Os dados são tratados com as seguintes bases legais: (a) <strong>execução contratual</strong> — gestão e administração de apólices de seguros; (b) <strong>obrigação legal</strong> — cumprimento de exigências regulatórias do setor de seguros; (c) <strong>legítimo interesse</strong> — segurança, prevenção a fraudes e melhoria do sistema; (d) <strong>consentimento</strong> — comunicações de marketing por WhatsApp ou e-mail, quando autorizado pelo titular.</p>
             </div>
             <div>
-              <p className="font-semibold text-gray-800 mb-1">4. Compartilhamento de Dados</p>
-              <p>Seus dados poderão ser compartilhados com seguradoras, operadoras e prestadores de serviço estritamente necessários para a execução dos contratos de seguro. Não vendemos nem cedemos seus dados a terceiros para fins comerciais.</p>
+              <p className="font-semibold text-gray-800 mb-1">4. Compartilhamento e Transferência Internacional</p>
+              <p>Seus dados poderão ser compartilhados com seguradoras, operadoras e prestadores de serviço essenciais à execução dos contratos. O sistema utiliza infraestrutura da <strong>Supabase Inc.</strong> (EUA) para banco de dados e da <strong>EmailJS Ltd.</strong> para envio de e-mails, ambos com políticas de adequação de dados compatíveis com a LGPD. Não vendemos nem cedemos seus dados a terceiros para fins comerciais.</p>
             </div>
             <div>
-              <p className="font-semibold text-gray-800 mb-1">5. Segurança e Armazenamento</p>
-              <p>Adotamos medidas técnicas e administrativas para proteger seus dados contra acesso não autorizado, perda ou divulgação indevida. Os dados são armazenados em servidores seguros e ficam disponíveis pelo prazo mínimo exigido pela legislação vigente.</p>
+              <p className="font-semibold text-gray-800 mb-1">5. Segurança, Armazenamento e Retenção</p>
+              <p>Adotamos medidas técnicas e administrativas para proteger seus dados contra acesso não autorizado. Os dados de apólices ativas são mantidos pelo prazo contratual e por, no mínimo, <strong>5 anos</strong> após o encerramento, conforme exigido pelo Código Civil e normativas da SUSEP. Dados de acesso e auditoria são retidos por <strong>12 meses</strong>.</p>
             </div>
             <div>
               <p className="font-semibold text-gray-800 mb-1">6. Seus Direitos (LGPD)</p>
-              <p>Você tem direito a: confirmar a existência de tratamento; acessar seus dados; corrigir dados incompletos ou incorretos; solicitar a anonimização, bloqueio ou eliminação de dados desnecessários; revogar seu consentimento a qualquer momento. Para exercer esses direitos, entre em contato conosco.</p>
+              <p>Você tem direito a: confirmar a existência de tratamento; acessar seus dados; corrigir dados incompletos ou incorretos; solicitar a anonimização, bloqueio ou eliminação de dados desnecessários; revogar seu consentimento a qualquer momento. Para exercer esses direitos, entre em contato com nosso Encarregado de Dados (DPO) pelo e-mail <strong>lgpd@agilseguros.com.br</strong>.</p>
             </div>
             <div>
               <p className="font-semibold text-gray-800 mb-1">7. Responsabilidade do Usuário</p>
               <p>O usuário é responsável pela veracidade das informações fornecidas e pela guarda de suas credenciais de acesso. Qualquer uso indevido das credenciais é de responsabilidade exclusiva do usuário.</p>
             </div>
             <div>
-              <p className="font-semibold text-gray-800 mb-1">8. Alterações nesta Política</p>
-              <p>Reservamo-nos o direito de atualizar esta política a qualquer momento. Alterações relevantes serão comunicadas através do sistema.</p>
+              <p className="font-semibold text-gray-800 mb-1">8. Limitação de Responsabilidade</p>
+              <p>A Ágil Seguros adota todas as medidas de segurança razoáveis e proporcionais para proteção dos dados. Em caso de incidente de segurança causado por ataques externos, falhas de infraestrutura de terceiros ou ação dolosa de usuários não autorizados, a responsabilidade da Ágil Seguros estará limitada às obrigações previstas na LGPD, especialmente no que se refere à notificação da ANPD e dos titulares afetados. Situações de força maior, caso fortuito e atos de terceiros afastam a responsabilidade da empresa, nos termos dos artigos 393 e 927 do Código Civil Brasileiro.</p>
+            </div>
+            <div>
+              <p className="font-semibold text-gray-800 mb-1">9. Encarregado de Dados (DPO)</p>
+              <p>O Encarregado de Proteção de Dados da Ágil Seguros pode ser contactado pelo e-mail <strong>lgpd@agilseguros.com.br</strong>. Todas as solicitações relacionadas a dados pessoais serão respondidas no prazo de até <strong>15 dias úteis</strong>, conforme previsto na LGPD.</p>
+            </div>
+            <div>
+              <p className="font-semibold text-gray-800 mb-1">10. Alterações nesta Política</p>
+              <p>Reservamo-nos o direito de atualizar esta política a qualquer momento. Alterações relevantes implicarão novo aceite por parte do usuário na próxima vez que acessar o sistema.</p>
             </div>
           </div>
 
