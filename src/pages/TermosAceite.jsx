@@ -148,7 +148,7 @@ const TermosAceite = () => {
             </div>
             <div>
               <p className="font-semibold text-gray-800 mb-1">6. Seus Direitos (LGPD)</p>
-              <p>Você tem direito a: confirmar a existência de tratamento; acessar seus dados; corrigir dados incompletos ou incorretos; solicitar a anonimização, bloqueio ou eliminação de dados desnecessários; revogar seu consentimento a qualquer momento. Para exercer esses direitos, entre em contato com nosso Encarregado de Dados (DPO) pelo e-mail <strong>lgpd@agilseguros.com.br</strong>.</p>
+              <p>Você tem direito a: confirmar a existência de tratamento; acessar seus dados; corrigir dados incompletos ou incorretos; solicitar a anonimização, bloqueio ou eliminação de dados desnecessários; revogar seu consentimento a qualquer momento. Para exercer esses direitos, entre em contato com nosso Encarregado de Dados (DPO) pelo e-mail <strong>contato@segurosagil.com.br</strong>.</p>
             </div>
             <div>
               <p className="font-semibold text-gray-800 mb-1">7. Responsabilidade do Usuário</p>
@@ -160,7 +160,7 @@ const TermosAceite = () => {
             </div>
             <div>
               <p className="font-semibold text-gray-800 mb-1">9. Encarregado de Dados (DPO)</p>
-              <p>O Encarregado de Proteção de Dados da Ágil Seguros pode ser contactado pelo e-mail <strong>lgpd@agilseguros.com.br</strong>. Todas as solicitações relacionadas a dados pessoais serão respondidas no prazo de até <strong>15 dias úteis</strong>, conforme previsto na LGPD.</p>
+              <p>O Encarregado de Proteção de Dados da Ágil Seguros pode ser contactado pelo e-mail <strong>contato@segurosagil.com.br</strong>. Todas as solicitações relacionadas a dados pessoais serão respondidas no prazo de até <strong>15 dias úteis</strong>, conforme previsto na LGPD.</p>
             </div>
             <div>
               <p className="font-semibold text-gray-800 mb-1">10. Alterações nesta Política</p>
