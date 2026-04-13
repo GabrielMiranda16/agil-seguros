@@ -286,7 +286,7 @@ const CEODashboard = () => {
       setNewAdminPerfil('ADM');
       setIsModalOpen(false);
     } catch (error) {
-       toast({ variant: 'destructive', title: 'Erro', description: 'Erro ao criar administrador.' });
+       toast({ variant: 'destructive', title: 'Erro ao criar', description: error?.message || JSON.stringify(error) });
     } finally {
        setIsSubmitting(false);
     }
@@ -332,12 +332,17 @@ const CEODashboard = () => {
   };
 
   const deleteAdmin = async (id) => {
+    const admin = users.find(u => u.id === id);
+    if (admin?.email === 'gabriel.miranda@segurosagil.com.br') {
+      toast({ variant: 'destructive', title: 'Não permitido', description: 'Este usuário não pode ser excluído.' });
+      return;
+    }
     try {
        await authService.deleteUser(id);
        setUsers(users.filter(u => u.id !== id));
        toast({ title: 'Sucesso', description: 'Administrador excluído.' });
     } catch (error) {
-       toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao excluir administrador.' });
+       toast({ variant: 'destructive', title: 'Erro ao excluir', description: error?.message || JSON.stringify(error) });
     }
   };
 
