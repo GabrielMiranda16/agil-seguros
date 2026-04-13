@@ -65,14 +65,14 @@ const TermosAceite = () => {
         versao_termos: TERMS_VERSION,
       });
 
-      // 2. Registra log de auditoria
-      await supabase.from('termos_log').insert({
+      // 2. Registra log de auditoria (não bloqueia o fluxo)
+      supabase.from('termos_log').insert({
         user_id: user.id,
         versao_termos: TERMS_VERSION,
         ip_aceite: userIp,
         aceite_whatsapp: aceitouWhatsapp,
         aceite_email: aceitouEmail,
-      });
+      }).catch(() => {});
 
       // 3. Email de confirmação para o cliente (não bloqueia o fluxo em caso de erro)
       sendTermosConfirmacaoCliente({
