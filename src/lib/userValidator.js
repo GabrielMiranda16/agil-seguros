@@ -31,6 +31,9 @@ export const cleanUserData = (data) => {
     empresa_matriz_id: number(data.empresa_matriz_id),
     ativo: data.ativo !== undefined ? boolean(data.ativo) : true,
     must_change_password: data.must_change_password !== undefined ? boolean(data.must_change_password) : false,
+    aceite_termos: false,
+    aceite_whatsapp: false,
+    aceite_email: false,
   };
 };
 
