@@ -180,7 +180,7 @@ const ModalFormContent = React.memo(({ formData, setFormData, age, titulares, is
   return (
     <div className="flex-1 overflow-y-auto max-h-[calc(90vh-150px)] px-4 py-4">
       <Accordion type="multiple" defaultValue={['personal', 'work', 'contact', 'values']} className="w-full">
-        <AccordionItem value="personal"><AccordionTrigger>Dados Pessoais</AccordionTrigger><AccordionContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <AccordionItem value="personal"><AccordionTrigger>Dados Pessoais</AccordionTrigger><AccordionContent className="grid grid-cols-1 gap-4">
           <FormField id="nome_completo" label="Nome Completo *"><Input id="nome_completo" value={formData.nome_completo} onChange={handleInputChange} /></FormField>
           <FormField id="cpf" label="CPF *"><Input id="cpf" value={formData.cpf} onChange={handleInputChange} /></FormField>
           <FormField id="parentesco" label="Parentesco *"><Select value={formData.parentesco} onValueChange={(v) => handleSelectChange('parentesco', v)}><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger><SelectContent><SelectItem value="TITULAR">TITULAR</SelectItem><SelectItem value="CONJUGE">CÔNJUGE</SelectItem><SelectItem value="FILHO(A)">FILHO(A)</SelectItem><SelectItem value="IRMÃO(Ã)">IRMÃO(Ã)</SelectItem><SelectItem value="NETO(A)">NETO(A)</SelectItem><SelectItem value="PAI">PAI</SelectItem><SelectItem value="MÃE">MÃE</SelectItem></SelectContent></Select></FormField>
@@ -221,7 +221,7 @@ const ModalFormContent = React.memo(({ formData, setFormData, age, titulares, is
           )}
         </AccordionContent></AccordionItem>
 
-        <AccordionItem value="work"><AccordionTrigger>Dados Trabalhistas</AccordionTrigger><AccordionContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <AccordionItem value="work"><AccordionTrigger>Dados Trabalhistas</AccordionTrigger><AccordionContent className="grid grid-cols-1 gap-4">
           <FormField id="matricula_empresa" label="Matrícula e Dígito"><Input id="matricula_empresa" value={formData.matricula_empresa} onChange={handleInputChange} /></FormField>
           <FormField id="data_admissao" label="Data de Admissão"><DateInput id="data_admissao" value={formData.data_admissao} onChange={handleInputChange} /></FormField>
         </AccordionContent></AccordionItem>
