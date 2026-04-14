@@ -59,9 +59,9 @@ const LoginPage = () => {
         toast({
             variant: "destructive",
             title: "Falha no login",
-            description: error.message === 'Credenciais inválidas.' 
-              ? "E-mail ou senha incorretos." 
-              : "Erro no sistema. Por favor, tente novamente.",
+            description: error.message === 'Credenciais inválidas.'
+              ? "E-mail ou senha incorretos."
+              : `Erro: ${error.message || JSON.stringify(error)}`,
         });
     } finally {
         setIsLoggingIn(false);
