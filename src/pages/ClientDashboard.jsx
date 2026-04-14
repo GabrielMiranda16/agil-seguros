@@ -52,6 +52,22 @@ const FormField = ({ id, label, children, tooltip }) => (
   <div className="space-y-2"><div className="flex items-center space-x-2"><Label htmlFor={id}>{label}</Label>{tooltip && (<TooltipProvider delayDuration={100}><Tooltip><TooltipTrigger type="button"><Info className="h-4 w-4 text-gray-500" /></TooltipTrigger><TooltipContent><p>{tooltip}</p></TooltipContent></Tooltip></TooltipProvider>)}</div>{children}</div>
 );
 
+const DateInput = ({ id, value, onChange, disabled }) => {
+  const ref = React.useRef(null);
+  const openPicker = () => { if (ref.current) { if (ref.current.showPicker) ref.current.showPicker(); else ref.current.click(); } };
+  return (
+    <div className="flex items-center gap-2">
+      <Input ref={ref} id={id} type="date" value={value} onChange={onChange} disabled={disabled}
+        className="flex-1 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:w-0 [&::-webkit-calendar-picker-indicator]:p-0" />
+      {!disabled && (
+        <button type="button" onClick={openPicker} className="shrink-0 p-2 border border-gray-200 rounded-md hover:bg-gray-50 text-gray-500 transition-colors">
+          <Calendar className="h-4 w-4" />
+        </button>
+      )}
+    </div>
+  );
+};
+
 const verificarPlanoPreenchido = (tipoPlano, formData) => {
   const camposPlano = Object.keys(formData).filter(key => key.startsWith(`${tipoPlano}_`) && key !== `${tipoPlano}_ativo`);
   for (const campo of camposPlano) {
@@ -168,7 +184,7 @@ const ModalFormContent = React.memo(({ formData, setFormData, age, titulares, is
           <FormField id="nome_completo" label="Nome Completo *"><Input id="nome_completo" value={formData.nome_completo} onChange={handleInputChange} /></FormField>
           <FormField id="cpf" label="CPF *"><Input id="cpf" value={formData.cpf} onChange={handleInputChange} /></FormField>
           <FormField id="parentesco" label="Parentesco *"><Select value={formData.parentesco} onValueChange={(v) => handleSelectChange('parentesco', v)}><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger><SelectContent><SelectItem value="TITULAR">TITULAR</SelectItem><SelectItem value="CONJUGE">CÔNJUGE</SelectItem><SelectItem value="FILHO(A)">FILHO(A)</SelectItem><SelectItem value="IRMÃO(Ã)">IRMÃO(Ã)</SelectItem><SelectItem value="NETO(A)">NETO(A)</SelectItem><SelectItem value="PAI">PAI</SelectItem><SelectItem value="MÃE">MÃE</SelectItem></SelectContent></Select></FormField>
-          <FormField id="data_nascimento" label="Data de Nascimento"><Input id="data_nascimento" type="date" value={formData.data_nascimento} onChange={handleInputChange} /></FormField>
+          <FormField id="data_nascimento" label="Data de Nascimento"><DateInput id="data_nascimento" value={formData.data_nascimento} onChange={handleInputChange} /></FormField>
           <FormField id="idade" label="Idade"><Input id="idade" value={age} disabled className="bg-gray-200" /></FormField>
           <FormField id="nome_mae" label="Nome da Mãe"><Input id="nome_mae" value={formData.nome_mae} onChange={handleInputChange} /></FormField>
           
@@ -194,12 +210,12 @@ const ModalFormContent = React.memo(({ formData, setFormData, age, titulares, is
           <FormField id="situacao" label="Situação Geral *"><Select value={formData.situacao} onValueChange={(v) => handleSelectChange('situacao', v)}><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger><SelectContent><SelectItem value="ATIVO">ATIVO</SelectItem><SelectItem value="INATIVO">INATIVO</SelectItem><SelectItem value="AFASTADO">AFASTADO</SelectItem></SelectContent></Select></FormField>
           {formData.situacao === 'INATIVO' && (
             <FormField id="data_inatividade" label="Data de Inatividade *">
-              <Input id="data_inatividade" type="date" value={formData.data_inatividade} onChange={handleInputChange} />
+              <DateInput id="data_inatividade" value={formData.data_inatividade} onChange={handleInputChange} />
             </FormField>
           )}
           {formData.situacao === 'AFASTADO' && (
             <>
-              <FormField id="data_afastamento" label="Data de Afastamento *"><Input id="data_afastamento" type="date" value={formData.data_afastamento} onChange={handleInputChange} /></FormField>
+              <FormField id="data_afastamento" label="Data de Afastamento *"><DateInput id="data_afastamento" value={formData.data_afastamento} onChange={handleInputChange} /></FormField>
               <FormField id="motivo_afastamento" label="Motivo do Afastamento *"><Input id="motivo_afastamento" value={formData.motivo_afastamento} onChange={handleInputChange} /></FormField>
             </>
           )}
@@ -207,7 +223,7 @@ const ModalFormContent = React.memo(({ formData, setFormData, age, titulares, is
 
         <AccordionItem value="work"><AccordionTrigger>Dados Trabalhistas</AccordionTrigger><AccordionContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField id="matricula_empresa" label="Matrícula e Dígito"><Input id="matricula_empresa" value={formData.matricula_empresa} onChange={handleInputChange} /></FormField>
-          <FormField id="data_admissao" label="Data de Admissão"><Input id="data_admissao" type="date" value={formData.data_admissao} onChange={handleInputChange} /></FormField>
+          <FormField id="data_admissao" label="Data de Admissão"><DateInput id="data_admissao" value={formData.data_admissao} onChange={handleInputChange} /></FormField>
         </AccordionContent></AccordionItem>
 
         <AccordionItem value="contact"><AccordionTrigger>Contato e Endereço</AccordionTrigger><AccordionContent className="space-y-4">
@@ -232,8 +248,8 @@ const ModalFormContent = React.memo(({ formData, setFormData, age, titulares, is
             <FormField id="saude_acomodacao" label="Acomodação"><Input id="saude_acomodacao" value={formData.saude_acomodacao} onChange={handleInputChange} disabled={isCliente} /></FormField>
             <FormField id="saude_codigo_empresa" label="Código da Empresa"><Input id="saude_codigo_empresa" value={formData.saude_codigo_empresa} onChange={handleInputChange} disabled={isCliente} /></FormField>
             <FormField id="saude_produto" label="Produto"><Input id="saude_produto" value={formData.saude_produto} onChange={handleInputChange} disabled={isCliente} /></FormField>
-            <FormField id="saude_data_inclusao" label="Data Inclusão"><Input id="saude_data_inclusao" type="date" value={formData.saude_data_inclusao} onChange={handleInputChange} disabled={isCliente} /></FormField>
-            <FormField id="saude_data_exclusao" label="Data Exclusão"><Input id="saude_data_exclusao" type="date" value={formData.saude_data_exclusao} onChange={handleInputChange} disabled={isCliente} /></FormField>
+            <FormField id="saude_data_inclusao" label="Data Inclusão"><DateInput id="saude_data_inclusao" value={formData.saude_data_inclusao} onChange={handleInputChange} disabled={isCliente} /></FormField>
+            <FormField id="saude_data_exclusao" label="Data Exclusão"><DateInput id="saude_data_exclusao" value={formData.saude_data_exclusao} onChange={handleInputChange} disabled={isCliente} /></FormField>
             <FormField id="saude_numero_carteirinha" label="Número Carteirinha"><Input id="saude_numero_carteirinha" value={formData.saude_numero_carteirinha} onChange={handleInputChange} disabled={isCliente} /></FormField>
             <FormField id="saude_link_carteirinha" label="Link Carteirinha">
               {isCliente && formData.saude_link_carteirinha && /^https?:\/\//i.test(formData.saude_link_carteirinha) ? (
@@ -253,8 +269,8 @@ const ModalFormContent = React.memo(({ formData, setFormData, age, titulares, is
             <FormField id="vida_valor_fatura" label="Valor Fatura"><Input id="vida_valor_fatura" type="number" step="0.01" value={formData.vida_valor_fatura} onChange={handleInputChange} disabled={isCliente} /></FormField>
             <FormField id="vida_codigo_empresa" label="Código da Empresa"><Input id="vida_codigo_empresa" value={formData.vida_codigo_empresa} onChange={handleInputChange} disabled={isCliente} /></FormField>
             <FormField id="vida_produto" label="Produto"><Input id="vida_produto" value={formData.vida_produto} onChange={handleInputChange} disabled={isCliente} /></FormField>
-            <FormField id="vida_data_inclusao" label="Data Inclusão"><Input id="vida_data_inclusao" type="date" value={formData.vida_data_inclusao} onChange={handleInputChange} disabled={isCliente} /></FormField>
-            <FormField id="vida_data_exclusao" label="Data Exclusão"><Input id="vida_data_exclusao" type="date" value={formData.vida_data_exclusao} onChange={handleInputChange} disabled={isCliente} /></FormField>
+            <FormField id="vida_data_inclusao" label="Data Inclusão"><DateInput id="vida_data_inclusao" value={formData.vida_data_inclusao} onChange={handleInputChange} disabled={isCliente} /></FormField>
+            <FormField id="vida_data_exclusao" label="Data Exclusão"><DateInput id="vida_data_exclusao" value={formData.vida_data_exclusao} onChange={handleInputChange} disabled={isCliente} /></FormField>
             <FormField id="vida_numero_carteirinha" label="Número Carteirinha"><Input id="vida_numero_carteirinha" value={formData.vida_numero_carteirinha} onChange={handleInputChange} disabled={isCliente} /></FormField>
             <FormField id="vida_link_carteirinha" label="Link Carteirinha">
               {isCliente && formData.vida_link_carteirinha && /^https?:\/\//i.test(formData.vida_link_carteirinha) ? (
@@ -270,8 +286,8 @@ const ModalFormContent = React.memo(({ formData, setFormData, age, titulares, is
             <FormField id="odonto_valor_fatura" label="Valor Fatura"><Input id="odonto_valor_fatura" type="number" step="0.01" value={formData.odonto_valor_fatura} onChange={handleInputChange} disabled={isCliente} /></FormField>
             <FormField id="odonto_codigo_empresa" label="Código da Empresa"><Input id="odonto_codigo_empresa" value={formData.odonto_codigo_empresa} onChange={handleInputChange} disabled={isCliente} /></FormField>
             <FormField id="odonto_produto" label="Produto"><Input id="odonto_produto" value={formData.odonto_produto} onChange={handleInputChange} disabled={isCliente} /></FormField>
-            <FormField id="odonto_data_inclusao" label="Data Inclusão"><Input id="odonto_data_inclusao" type="date" value={formData.odonto_data_inclusao} onChange={handleInputChange} disabled={isCliente} /></FormField>
-            <FormField id="odonto_data_exclusao" label="Data Exclusão"><Input id="odonto_data_exclusao" type="date" value={formData.odonto_data_exclusao} onChange={handleInputChange} disabled={isCliente} /></FormField>
+            <FormField id="odonto_data_inclusao" label="Data Inclusão"><DateInput id="odonto_data_inclusao" value={formData.odonto_data_inclusao} onChange={handleInputChange} disabled={isCliente} /></FormField>
+            <FormField id="odonto_data_exclusao" label="Data Exclusão"><DateInput id="odonto_data_exclusao" value={formData.odonto_data_exclusao} onChange={handleInputChange} disabled={isCliente} /></FormField>
             <FormField id="odonto_numero_carteirinha" label="Número Carteirinha"><Input id="odonto_numero_carteirinha" value={formData.odonto_numero_carteirinha} onChange={handleInputChange} disabled={isCliente} /></FormField>
             <FormField id="odonto_link_carteirinha" label="Link Carteirinha">
               {isCliente && formData.odonto_link_carteirinha && /^https?:\/\//i.test(formData.odonto_link_carteirinha) ? (
@@ -1095,7 +1111,7 @@ const ClientDashboard = () => {
           )}
         </motion.div>
 
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}><DialogContent className="sm:max-w-2xl sm:max-h-[90vh] overflow-hidden p-0 flex flex-col"><DialogHeader className="px-4 pt-4"><DialogTitle>{editingBeneficiario ? 'Editar' : 'Adicionar'} Beneficiário</DialogTitle></DialogHeader><form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">{isModalOpen && <ModalFormContent formData={formData} setFormData={setFormData} age={age} titulares={titulares} beneficiario={editingBeneficiario} isCliente={user.perfil === 'CLIENTE'} openSolicitacaoDialog={openSolicitacaoDialog} renderPlanStatusCard={renderPlanStatusCard} setIsExclusaoModalOpen={setIsExclusaoModalOpen} setExclusaoData={setExclusaoData} handleSolicitarAlteracao={handleSolicitarAlteracao} />}<DialogFooter className="px-4 mt-4 pb-4"><Button type="submit" disabled={isSubmitting} className="bg-[#003580] hover:bg-[#002060] text-white">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar</Button></DialogFooter></form></DialogContent></Dialog>
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}><DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-hidden p-0 flex flex-col"><DialogHeader className="px-4 pt-4"><DialogTitle>{editingBeneficiario ? 'Editar' : 'Adicionar'} Beneficiário</DialogTitle></DialogHeader><form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">{isModalOpen && <ModalFormContent formData={formData} setFormData={setFormData} age={age} titulares={titulares} beneficiario={editingBeneficiario} isCliente={user.perfil === 'CLIENTE'} openSolicitacaoDialog={openSolicitacaoDialog} renderPlanStatusCard={renderPlanStatusCard} setIsExclusaoModalOpen={setIsExclusaoModalOpen} setExclusaoData={setExclusaoData} handleSolicitarAlteracao={handleSolicitarAlteracao} />}<DialogFooter className="px-4 mt-4 pb-4"><Button type="submit" disabled={isSubmitting} className="bg-[#003580] hover:bg-[#002060] text-white">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar</Button></DialogFooter></form></DialogContent></Dialog>
         {editingBeneficiario && user.perfil === 'CLIENTE' && (<Dialog open={isSolicitacaoDialogOpen} onOpenChange={(open) => { if (!open) setIsSolicitacaoDialogOpen(false); }}><DialogContent className="sm:max-w-[425px] sm:max-h-[80vh] overflow-y-auto"><DialogHeader><DialogTitle>Solicitar Inclusão</DialogTitle><DialogDescription>Selecione os planos que deseja solicitar para este beneficiário.</DialogDescription></DialogHeader><div className="py-4 space-y-4">{renderPlanSelectionItem('saude', 'Plano de Saúde', Hospital, 'text-green-600')}{renderPlanSelectionItem('vida', 'Seguro de Vida', Heart, 'text-blue-600')}{renderPlanSelectionItem('odonto', 'Plano Odonto', Smile, 'text-orange-600')}</div><DialogFooter><Button variant="outline" onClick={() => setIsSolicitacaoDialogOpen(false)}>Fechar</Button><Button onClick={confirmSolicitacao}>Confirmar Solicitação</Button></DialogFooter></DialogContent></Dialog>)}
         <Dialog open={isExclusaoModalOpen} onOpenChange={setIsExclusaoModalOpen}><DialogContent className="w-[95vw] sm:max-w-md"><DialogHeader><DialogTitle>Solicitar Exclusão de Plano</DialogTitle></DialogHeader><div className="grid gap-4 py-4"><div className="grid gap-2"><Label htmlFor="dataExclusao">Data da Exclusão</Label><Input id="dataExclusao" type="date" value={exclusaoData.dataExclusao} onChange={(e) => setExclusaoData({...exclusaoData, dataExclusao: e.target.value})} /></div><div className="grid gap-2"><Label htmlFor="motivo">Motivo</Label><Textarea id="motivo" value={exclusaoData.motivo} onChange={(e) => setExclusaoData({...exclusaoData, motivo: e.target.value})} /></div></div><DialogFooter><Button variant="outline" onClick={() => setIsExclusaoModalOpen(false)}>Cancelar</Button><Button onClick={() => { handleSolicitarExclusao(exclusaoData.beneficiarioId, exclusaoData.tipoPlano, exclusaoData.motivo, exclusaoData.dataExclusao); }}>Enviar Solicitação</Button></DialogFooter></DialogContent></Dialog>
         <Dialog open={isAlteracaoModalOpen} onOpenChange={setIsAlteracaoModalOpen}><DialogContent><DialogHeader><DialogTitle>Solicitar Alteração de Plano</DialogTitle><DialogDescription>Você está solicitando a alteração do plano <strong>{alteracaoData.tipoPlano}</strong>.</DialogDescription></DialogHeader><div className="py-4 text-sm text-gray-600"><p>Ao confirmar, uma solicitação de alteração será enviada para a administração.</p><p className="mt-2">Você poderá acompanhar o status desta solicitação no painel do beneficiário.</p></div><DialogFooter><Button variant="outline" onClick={() => setIsAlteracaoModalOpen(false)}>Cancelar</Button><Button onClick={confirmAlteracao} className="bg-blue-600 hover:bg-blue-700 text-white">Confirmar Alteração</Button></DialogFooter></DialogContent></Dialog>
