@@ -297,11 +297,7 @@ const ModalFormContent = React.memo(({ formData, setFormData, age, titulares, is
           </div>
         </AccordionContent></AccordionItem>
 
-        <AccordionItem value="values"><AccordionTrigger>Valores e Ajustes</AccordionTrigger><AccordionContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField id="total_geral" label="Total Geral"><Input value={formatCurrency(totalGeralBeneficiario)} disabled className="bg-gray-200 font-bold" /></FormField>
-        </AccordionContent></AccordionItem>
-
-        <AccordionItem value="obs"><AccordionTrigger>Observações</AccordionTrigger><AccordionContent>
+<AccordionItem value="obs"><AccordionTrigger>Observações</AccordionTrigger><AccordionContent>
           <FormField id="observacoes" label="Observações"><Textarea id="observacoes" value={formData.observacoes} onChange={handleInputChange} className="h-24" /></FormField>
         </AccordionContent></AccordionItem>
       </Accordion>
