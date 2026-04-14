@@ -65,6 +65,7 @@ import { formatDateTime } from '@/lib/utils';
 import { solicitacoesService } from '@/services/solicitacoesService';
 import { beneficiariosService } from '@/services/beneficiariosService';
 import { empresasService } from '@/services/empresasService';
+import { formatCpfCnpj } from '@/lib/masks';
 
 const SolicitacoesPage = () => {
   const { toast } = useToast();
@@ -613,7 +614,7 @@ const SolicitacoesPage = () => {
                                 {beneficiario ? beneficiario.nome_completo : 'Beneficiário Removido'}
                                 {beneficiario && (
                                   <div className="text-xs text-gray-500">
-                                    CPF: {beneficiario.cpf}
+                                    CPF: {formatCpfCnpj(beneficiario.cpf)}
                                   </div>
                                 )}
                               </TableCell>
@@ -841,7 +842,7 @@ const SolicitacoesPage = () => {
                   <SelectContent className="max-h-[200px]">
                     {beneficiarios.map(b => (
                       <SelectItem key={b.id} value={b.id.toString()}>
-                        {b.nome_completo} ({b.cpf})
+                        {b.nome_completo} ({formatCpfCnpj(b.cpf)})
                       </SelectItem>
                     ))}
                   </SelectContent>

@@ -37,6 +37,7 @@ import { coparticipacaoService } from '@/services/coparticipacaoService';
 import { authService } from '@/services/authService';
 import { apolicesService } from '@/services/apolicesService';
 import { sendWelcomeEmail, generateTempPassword } from '@/services/emailService';
+import { formatCpfCnpj } from '@/lib/masks';
 
 const CEODashboard = () => {
   const { toast } = useToast();
@@ -487,7 +488,7 @@ const CEODashboard = () => {
                           <span className="text-lg font-bold text-[#003580] w-6 flex-shrink-0">#{i + 1}</span>
                           <div className="min-w-0 flex-1">
                             <p className="font-semibold text-gray-800 truncate">{emp.full_name}</p>
-                            <p className="text-xs text-gray-400">{emp.cnpj} · {emp.apolicesCount} apólice(s) · {emp.beneficiariosCount} benef.</p>
+                            <p className="text-xs text-gray-400">{formatCpfCnpj(emp.cnpj)} · {emp.apolicesCount} apólice(s) · {emp.beneficiariosCount} benef.</p>
                           </div>
                           <span className="font-bold text-[#003580] text-sm flex-shrink-0">{formatCurrency(emp.total)}</span>
                         </div>

@@ -23,6 +23,13 @@ export const applyCepMask = (value) => {
     .slice(0, 9);
 };
 
+export const formatCpfCnpj = (value) => {
+  if (!value) return '—';
+  const digits = String(value).replace(/\D/g, '');
+  if (digits.length <= 11) return applyCpfMask(digits);
+  return applyCnpjMask(digits);
+};
+
 export const applyCnpjMask = (value) => {
   return value
     .replace(/\D/g, '')

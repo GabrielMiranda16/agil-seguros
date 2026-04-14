@@ -18,6 +18,7 @@ import * as XLSX from 'xlsx';
 import { coparticipacaoService } from '@/services/coparticipacaoService';
 import { beneficiariosService } from '@/services/beneficiariosService';
 import { empresasService } from '@/services/empresasService';
+import { formatCpfCnpj } from '@/lib/masks';
 
 const CoparticipacaoClientePage = () => {
   const navigate = useNavigate();
@@ -274,7 +275,7 @@ const CoparticipacaoClientePage = () => {
                 <FileText className="h-5 w-5" /> Resumo {tipoLabel}
               </CardTitle>
               <CardDescription className="text-blue-100">
-                {(() => { const emp = empresas.find(e => String(e.id) === String(empresaId)); return emp ? `${emp.nome_fantasia || emp.razao_social} · ${emp.cnpj || emp.cpf || '—'}` : ''; })()}
+                {(() => { const emp = empresas.find(e => String(e.id) === String(empresaId)); return emp ? `${emp.nome_fantasia || emp.razao_social} · ${formatCpfCnpj(emp.cnpj || emp.cpf)}` : ''; })()}
               </CardDescription>
               <CardDescription className="text-blue-100">
                 Total de coparticipações de {tipoLabel.toLowerCase()} lançadas em {getMonthName(selectedMonth)} de {selectedYear}
@@ -326,7 +327,7 @@ const CoparticipacaoClientePage = () => {
                       <tr key={item.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-4 py-3 font-medium text-gray-900">{getBeneficiarioName(item.beneficiario_id)}</td>
                         <td className="px-4 py-3 text-gray-600">{item.nome_quem_utilizou || '-'}</td>
-                        <td className="px-4 py-3 text-gray-500">{item.cpf_quem_utilizou || '-'}</td>
+                        <td className="px-4 py-3 text-gray-500">{item.cpf_quem_utilizou ? formatCpfCnpj(item.cpf_quem_utilizou) : '-'}</td>
                         <td className="px-4 py-3 text-gray-600">{item.descricao || '-'}</td>
                         <td className="px-4 py-3 text-right font-bold text-gray-900">
                           {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.valor)}

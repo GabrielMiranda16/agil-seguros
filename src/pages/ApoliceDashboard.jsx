@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatCpfCnpj } from '@/lib/masks';
 
 const SEGMENTO_ICONS = {
   AUTO_FROTA:        Car,
@@ -388,7 +389,7 @@ const ApoliceDashboard = () => {
                           {apolice.dados_adicionais.segurados.map((s, i) => (
                             <div key={i} className="flex items-center justify-between text-sm py-1 border-b last:border-0">
                               <span className="text-gray-800">{s.nome || '—'}</span>
-                              <span className="text-gray-400 text-xs">{s.cpf || ''}</span>
+                              <span className="text-gray-400 text-xs">{s.cpf ? formatCpfCnpj(s.cpf) : ''}</span>
                             </div>
                           ))}
                         </div>
@@ -506,7 +507,7 @@ const ApoliceDashboard = () => {
                             <div key={b.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border text-sm">
                               <div>
                                 <p className="font-medium text-gray-800">{b.nome_completo}</p>
-                                <p className="text-xs text-gray-400">{b.cpf || '—'} · {b.tipo_beneficiario || '—'}</p>
+                                <p className="text-xs text-gray-400">{formatCpfCnpj(b.cpf)} · {b.tipo_beneficiario || '—'}</p>
                               </div>
                               <Badge variant="outline" className={b.data_exclusao ? 'text-red-600' : 'text-green-600'}>
                                 {b.data_exclusao ? 'Inativo' : 'Ativo'}

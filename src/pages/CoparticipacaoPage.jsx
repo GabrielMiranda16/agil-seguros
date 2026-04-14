@@ -21,6 +21,7 @@ import { coparticipacaoService } from '@/services/coparticipacaoService';
 import { beneficiariosService } from '@/services/beneficiariosService';
 import { empresasService } from '@/services/empresasService';
 import { cleanCoparticipacaoData, validateCoparticipacao } from '@/lib/coparticipacaoValidator';
+import { formatCpfCnpj } from '@/lib/masks';
 
 const months = [
   { value: 1, label: 'Janeiro' },
@@ -416,9 +417,9 @@ const CoparticipacaoPage = () => {
                         <tr key={item.id} className="hover:bg-gray-50">
                           <td className="px-4 py-3 font-medium">{item.competencia}</td>
                           <td className="px-4 py-3">{getBeneficiarioName(item.beneficiario_id)}</td>
-                          <td className="px-4 py-3 text-xs text-gray-500">{emp?.cnpj || '-'}</td>
+                          <td className="px-4 py-3 text-xs text-gray-500">{emp?.cnpj ? formatCpfCnpj(emp.cnpj) : '-'}</td>
                           <td className="px-4 py-3 text-gray-600">{item.nome_quem_utilizou || '-'}</td>
-                          <td className="px-4 py-3 text-gray-600">{item.cpf_quem_utilizou || '-'}</td>
+                          <td className="px-4 py-3 text-gray-600">{item.cpf_quem_utilizou ? formatCpfCnpj(item.cpf_quem_utilizou) : '-'}</td>
                           <td className="px-4 py-3 text-gray-600">{item.descricao || '-'}</td>
                           <td className="px-4 py-3 text-green-600 font-bold">
                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.valor)}
@@ -464,7 +465,7 @@ const CoparticipacaoPage = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-white">Coparticipação</h1>
-            {(() => { const emp = empresas.find(e => String(e.id) === String(selectedCompanyId)); return emp ? <p className="text-white font-medium">{emp.nome_fantasia || emp.razao_social} · <span className="text-white/70">{emp.cnpj || emp.cpf || '—'}</span></p> : null; })()}
+            {(() => { const emp = empresas.find(e => String(e.id) === String(selectedCompanyId)); return emp ? <p className="text-white font-medium">{emp.nome_fantasia || emp.razao_social} · <span className="text-white/70">{formatCpfCnpj(emp.cnpj || emp.cpf)}</span></p> : null; })()}
             <p className="text-white/70">Gerencie os valores de coparticipação mensal por empresa.</p>
           </div>
           <Button variant="outline" onClick={() => navigate(-1)}>

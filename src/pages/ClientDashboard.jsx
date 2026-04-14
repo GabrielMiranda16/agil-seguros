@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/table";
 import { Users, UserCheck, UserX, UserMinus, Plus, Edit, Trash2, Search, Loader2, Info, Heart, Smile, Hotel as Hospital, ExternalLink, CheckCircle2, Calendar, Timer, RotateCcw, AlertCircle, X, User, ClipboardList, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { applyCpfMask, applyPhoneMask, applyCepMask } from '@/lib/masks';
+import { applyCpfMask, applyPhoneMask, applyCepMask, formatCpfCnpj } from '@/lib/masks';
 import { calculateAge, formatCurrency, formatDate } from '@/lib/utils';
 import { differenceInMinutes } from 'date-fns';
 
@@ -471,7 +471,7 @@ const ClientDashboard = () => {
   useEffect(() => { setAge(formData.data_nascimento ? calculateAge(formData.data_nascimento) : ''); }, [formData.data_nascimento]);
 
   const openModalToAdd = () => { setEditingBeneficiario(null); setFormData(emptyBeneficiario); setIsModalOpen(true); };
-  const openModalToEdit = (b) => { setEditingBeneficiario(b); setFormData({ ...emptyBeneficiario, ...b }); setIsModalOpen(true); };
+  const openModalToEdit = (b) => { setEditingBeneficiario(b); setFormData({ ...emptyBeneficiario, ...b, cpf: b.cpf ? formatCpfCnpj(b.cpf) : '' }); setIsModalOpen(true); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -1001,7 +1001,7 @@ const ClientDashboard = () => {
                                                     {b.parentesco !== 'TITULAR' && <span className="text-xs text-gray-500">Titular: {b.nome_titular}</span>}
                                                 </div>
                                             </TableCell>
-                                            <TableCell>{b.cpf}</TableCell>
+                                            <TableCell>{formatCpfCnpj(b.cpf)}</TableCell>
                                             <TableCell>{b.parentesco}</TableCell>
                                             <TableCell>
                                                 <div className="flex gap-2">
