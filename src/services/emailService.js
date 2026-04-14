@@ -14,7 +14,10 @@ export function generateTempPassword(length = 10) {
 }
 
 export async function sendTermosConfirmacaoCliente({ nomeCliente, emailCliente, versao, data, aceitouWhatsapp, aceitouEmail }) {
-  if (!SERVICE_ID || !TEMPLATE_TERMOS_CLIENTE || !PUBLIC_KEY) return { ok: false };
+  if (!SERVICE_ID || !TEMPLATE_TERMOS_CLIENTE || !PUBLIC_KEY) {
+    console.error('[EmailJS Termos] Variáveis faltando:', { SERVICE_ID: !!SERVICE_ID, TEMPLATE_TERMOS_CLIENTE: !!TEMPLATE_TERMOS_CLIENTE, PUBLIC_KEY: !!PUBLIC_KEY });
+    return { ok: false };
+  }
   try {
     const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
       method: 'POST',
@@ -34,14 +37,20 @@ export async function sendTermosConfirmacaoCliente({ nomeCliente, emailCliente, 
         },
       }),
     });
-    return { ok: response.ok };
-  } catch {
+    const text = await response.text();
+    if (!response.ok) console.error('[EmailJS Termos Cliente] Erro:', response.status, text);
+    return { ok: response.ok, error: text };
+  } catch (err) {
+    console.error('[EmailJS Termos Cliente] Exceção:', err);
     return { ok: false };
   }
 }
 
 export async function sendTermosNotificacaoEmpresa({ nomeCliente, emailCliente, versao, data, ip, aceitouWhatsapp, aceitouEmail }) {
-  if (!SERVICE_ID || !TEMPLATE_TERMOS_CLIENTE || !PUBLIC_KEY) return { ok: false };
+  if (!SERVICE_ID || !TEMPLATE_TERMOS_CLIENTE || !PUBLIC_KEY) {
+    console.error('[EmailJS Termos Empresa] Variáveis faltando:', { SERVICE_ID: !!SERVICE_ID, TEMPLATE_TERMOS_CLIENTE: !!TEMPLATE_TERMOS_CLIENTE, PUBLIC_KEY: !!PUBLIC_KEY });
+    return { ok: false };
+  }
   try {
     const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
       method: 'POST',
@@ -61,8 +70,11 @@ export async function sendTermosNotificacaoEmpresa({ nomeCliente, emailCliente, 
         },
       }),
     });
-    return { ok: response.ok };
-  } catch {
+    const text = await response.text();
+    if (!response.ok) console.error('[EmailJS Termos Empresa] Erro:', response.status, text);
+    return { ok: response.ok, error: text };
+  } catch (err) {
+    console.error('[EmailJS Termos Empresa] Exceção:', err);
     return { ok: false };
   }
 }

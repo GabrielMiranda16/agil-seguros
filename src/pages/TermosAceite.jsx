@@ -77,7 +77,8 @@ const TermosAceite = () => {
         data: dataFormatada,
         aceitouWhatsapp,
         aceitouEmail,
-      }).catch(() => {});
+      }).then(r => { if (!r.ok) console.error('[Termos] Email cliente falhou:', r.error); })
+        .catch(err => console.error('[Termos] Email cliente exceção:', err));
 
       // 4. Notificação para a empresa
       sendTermosNotificacaoEmpresa({
@@ -88,7 +89,8 @@ const TermosAceite = () => {
         ip: userIp,
         aceitouWhatsapp,
         aceitouEmail,
-      }).catch(() => {});
+      }).then(r => { if (!r.ok) console.error('[Termos] Email empresa falhou:', r.error); })
+        .catch(err => console.error('[Termos] Email empresa exceção:', err));
 
       updateUser({ ...user, aceite_termos: true, aceite_whatsapp: aceitouWhatsapp, aceite_email: aceitouEmail });
       navigate(getHomeRoute(), { replace: true });
