@@ -396,10 +396,28 @@ const AdminSegmentoPage = () => {
                         empApolices.map(ap => (
                           <div key={ap.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-blue-50 rounded-xl border border-blue-100 hover:shadow-sm transition-shadow">
                             <div>
-                              <p className="font-semibold text-gray-800 text-sm">
-                                {ap.numero_apolice ? `Apólice ${ap.numero_apolice}` : 'Apólice sem número'}
-                                {ap.seguradora && <span className="ml-1.5 text-gray-500 font-normal">· {ap.seguradora}</span>}
-                              </p>
+                              {(() => {
+                                const subs = ap.dados_adicionais?.sub_apolices?.filter(s => s.tipo || s.numero);
+                                if (subs?.length > 0) {
+                                  return (
+                                    <div className="space-y-0.5">
+                                      {subs.map((s, i) => (
+                                        <p key={i} className="font-semibold text-gray-800 text-sm">
+                                          {s.tipo && <span className="text-[#003580]">{s.tipo}</span>}
+                                          {s.numero && <span className="font-normal text-gray-600"> · Apólice {s.numero}</span>}
+                                          {s.seguradora && <span className="font-normal text-gray-400"> · {s.seguradora}</span>}
+                                        </p>
+                                      ))}
+                                    </div>
+                                  );
+                                }
+                                return (
+                                  <p className="font-semibold text-gray-800 text-sm">
+                                    {ap.numero_apolice ? `Apólice ${ap.numero_apolice}` : 'Apólice sem número'}
+                                    {ap.seguradora && <span className="ml-1.5 text-gray-500 font-normal">· {ap.seguradora}</span>}
+                                  </p>
+                                );
+                              })()}
                               <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-3">
                                 <span className="flex items-center gap-1"><Users className="h-3 w-3" /> Beneficiários, Solicitações e Coparticipação disponíveis dentro</span>
                               </p>
