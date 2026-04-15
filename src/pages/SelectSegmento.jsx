@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { motion } from 'framer-motion';
 import { LogOut, HeartPulse, Car, Plane, Home, PawPrint, Building2, Package, Monitor, Loader2, User, Lock, UserCog, Eye, EyeOff, Menu, X, Repeat } from 'lucide-react';
-import { applyCpfMask, applyCepMask } from '@/lib/masks';
+import { applyCpfMask, applyCepMask, formatCpfCnpj } from '@/lib/masks';
 import ChatWidget from '@/components/ChatWidget';
 import { validatePasswordStrength } from '@/lib/userValidator';
 import bcrypt from 'bcryptjs';
@@ -391,7 +391,7 @@ const SelectSegmento = () => {
             </div>
             <div>
               <Label>{isPF ? 'CPF' : 'CNPJ'}</Label>
-              <Input value={dadosForm.cnpj || ''} readOnly className="bg-gray-50 text-gray-500" />
+              <Input value={dadosForm.cnpj ? formatCpfCnpj(dadosForm.cnpj) : ''} readOnly className="bg-gray-50 text-gray-500" />
             </div>
             {isPF && (
               <div>

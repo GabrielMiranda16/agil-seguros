@@ -535,7 +535,7 @@ const CoparticipacaoPage = () => {
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label htmlFor="cnpj_vinculado">CNPJ/CPF (Vinculado)</Label>
-                <Input id="cnpj_vinculado" value={formData.cnpj || ''} readOnly disabled className="bg-gray-100 text-gray-600" />
+                <Input id="cnpj_vinculado" value={formData.cnpj ? formatCpfCnpj(formData.cnpj) : ''} readOnly disabled className="bg-gray-100 text-gray-600" />
               </div>
 
               <div className="grid gap-2">

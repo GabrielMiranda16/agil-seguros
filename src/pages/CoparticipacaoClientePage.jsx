@@ -130,7 +130,7 @@ const CoparticipacaoClientePage = () => {
     doc.setFontSize(11);
     doc.setTextColor(100);
     doc.text(`Empresa: ${empresaAtual?.nome_fantasia || empresaAtual?.razao_social}`, 14, 30);
-    doc.text(`CNPJ: ${empresaAtual?.cnpj}`, 14, 36);
+    doc.text(`CNPJ: ${empresaAtual?.cnpj ? formatCpfCnpj(empresaAtual.cnpj) : ''}`, 14, 36);
     doc.text(`Mês de Referência: ${mesLabel} de ${selectedYear}`, 14, 42);
 
     const tableColumn = ["Beneficiário Titular", "Quem Utilizou", "CPF Utilizador", "Descrição", "Valor (R$)"];

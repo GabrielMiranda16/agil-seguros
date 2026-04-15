@@ -10,6 +10,7 @@ import { LogOut, ArrowLeft, FileText, CalendarDays, Building, ChevronRight, Load
 import ChatWidget from '@/components/ChatWidget';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatCpfCnpj } from '@/lib/masks';
 
 const STATUS_STYLE = {
   green:  { badge: 'bg-green-100 text-green-800 border-green-200',   label: 'Ativa',             card: 'bg-white border-gray-100'   },
@@ -165,7 +166,7 @@ const SelectApolice = () => {
                                 </span>
                               </p>
                               {apolice.empresa.cnpj && (
-                                <p className="text-xs text-gray-400">CNPJ {apolice.empresa.cnpj}</p>
+                                <p className="text-xs text-gray-400">{apolice.empresa.cnpj.replace(/\D/g,'').length === 11 ? 'CPF' : 'CNPJ'} {formatCpfCnpj(apolice.empresa.cnpj)}</p>
                               )}
                             </div>
                           </div>
