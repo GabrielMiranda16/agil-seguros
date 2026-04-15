@@ -69,14 +69,13 @@ export const AuthProvider = ({ children }) => {
     // 2. Supabase Auth falhou — tenta bcrypt (usuário ainda não migrado)
     const userData = await authService.loginUser(email, password); // lança se errado
 
-    // 3. Auto-migração: cria conta no Supabase Auth silenciosamente
+    // 3. Sincroniza com Supabase Auth via Edge Function (usa chave de admin no servidor)
     try {
-      const { error: signUpError } = await supabase.auth.signUp({ email, password });
-      if (!signUpError) {
-        await supabase.auth.signInWithPassword({ email, password });
-      }
+      await supabase.functions.invoke('sync-auth-password', { body: { email, password } });
+      // 4. Agora tenta login com Supabase Auth — deve funcionar após o sync
+      await supabase.auth.signInWithPassword({ email, password });
     } catch {
-      // Não crítico — app continua funcionando com bcrypt
+      // Não crítico — app continua funcionando
     }
 
     const { password: _, ...safeUser } = userData;
