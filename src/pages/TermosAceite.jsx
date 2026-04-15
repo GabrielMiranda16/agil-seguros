@@ -77,9 +77,8 @@ const TermosAceite = () => {
         data: dataFormatada,
         aceitouWhatsapp,
         aceitouEmail,
-      }).then(r => {
-        if (!r.ok) toast({ variant: 'destructive', title: 'Erro e-mail cliente', description: r.error || 'Falha ao enviar confirmação' });
-      }).catch(err => toast({ variant: 'destructive', title: 'Erro e-mail cliente', description: err?.message }));
+      }).then(r => { if (!r.ok) console.error('[Termos] Email cliente falhou:', r.error); })
+        .catch(err => console.error('[Termos] Email cliente exceção:', err));
 
       // 4. Notificação para a empresa
       sendTermosNotificacaoEmpresa({
@@ -90,9 +89,8 @@ const TermosAceite = () => {
         ip: userIp,
         aceitouWhatsapp,
         aceitouEmail,
-      }).then(r => {
-        if (!r.ok) toast({ variant: 'destructive', title: 'Erro e-mail empresa', description: r.error || 'Falha ao enviar notificação' });
-      }).catch(err => toast({ variant: 'destructive', title: 'Erro e-mail empresa', description: err?.message }));
+      }).then(r => { if (!r.ok) console.error('[Termos] Email empresa falhou:', r.error); })
+        .catch(err => console.error('[Termos] Email empresa exceção:', err));
 
       updateUser({ ...user, aceite_termos: true, aceite_whatsapp: aceitouWhatsapp, aceite_email: aceitouEmail });
       navigate(getHomeRoute(), { replace: true });
