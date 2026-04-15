@@ -31,16 +31,18 @@ export const apolicesService = {
 
   async getApolicesByMatriz(empresa_matriz_id) {
     try {
-      // Busca apólices de todas as empresas da matriz
+      // Busca empresas da matriz com nome, cnpj e tipo
       const { data: empresas, error: empError } = await supabase
         .from('empresas')
-        .select('id')
+        .select('id, nome_fantasia, razao_social, cnpj, tipo, empresa_matriz_id')
         .or(`id.eq.${empresa_matriz_id},empresa_matriz_id.eq.${empresa_matriz_id}`);
 
       if (empError) throw empError;
 
       const ids = (empresas || []).map(e => e.id);
       if (ids.length === 0) return [];
+
+      const empresaMap = Object.fromEntries((empresas || []).map(e => [e.id, e]));
 
       const { data, error } = await supabase
         .from('apolices')
@@ -50,7 +52,12 @@ export const apolicesService = {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+
+      // Enriquece cada apólice com dados da empresa
+      return (data || []).map(ap => ({
+        ...ap,
+        empresa: empresaMap[ap.empresa_id] || null,
+      }));
     } catch (error) {
       console.error('Erro ao buscar apólices da matriz:', error);
       throw new Error('Não foi possível carregar as apólices.');

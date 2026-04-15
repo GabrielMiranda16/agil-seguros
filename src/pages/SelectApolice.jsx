@@ -145,12 +145,49 @@ const SelectApolice = () => {
                       )}
 
                       <div>
-                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Apólice</p>
-                        <p className="text-lg font-bold text-gray-800">{apolice.numero_apolice || (isSVDSemVigencia ? 'Plano Saúde/Vida/Odonto' : '—')}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Building className="h-4 w-4 text-gray-400" />
-                          <p className="text-sm text-gray-600 font-medium">{apolice.seguradora || '—'}</p>
-                        </div>
+                        {/* Empresa: nome + tipo + CNPJ */}
+                        {apolice.empresa && (
+                          <div className="flex items-center gap-2 mb-2">
+                            <Building className="h-4 w-4 text-gray-400 shrink-0" />
+                            <div>
+                              <p className="text-sm font-semibold text-gray-700 leading-tight">
+                                {apolice.empresa.nome_fantasia || apolice.empresa.razao_social}
+                                <span className={`ml-2 text-xs font-medium px-1.5 py-0.5 rounded-full ${apolice.empresa.tipo === 'MATRIZ' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                                  {apolice.empresa.tipo === 'MATRIZ' ? 'Matriz' : 'Filial'}
+                                </span>
+                              </p>
+                              {apolice.empresa.cnpj && (
+                                <p className="text-xs text-gray-400">CNPJ {apolice.empresa.cnpj}</p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        {/* Sub-apólices SVD ou número principal */}
+                        {(() => {
+                          const subs = apolice.dados_adicionais?.sub_apolices?.filter(s => s.tipo || s.numero);
+                          if (subs?.length > 0) {
+                            return (
+                              <div className="space-y-0.5">
+                                {subs.map((s, i) => (
+                                  <p key={i} className="text-sm font-bold text-gray-800">
+                                    {s.tipo && <span className="text-[#003580]">{s.tipo}</span>}
+                                    {s.numero && <span className="font-normal text-gray-600"> · Apólice {s.numero}</span>}
+                                    {s.seguradora && <span className="font-normal text-gray-400 text-xs"> · {s.seguradora}</span>}
+                                  </p>
+                                ))}
+                              </div>
+                            );
+                          }
+                          return (
+                            <>
+                              <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Apólice</p>
+                              <p className="text-lg font-bold text-gray-800">{apolice.numero_apolice || (isSVDSemVigencia ? 'Plano Saúde/Vida/Odonto' : '—')}</p>
+                              {apolice.seguradora && (
+                                <p className="text-sm text-gray-500 mt-0.5">{apolice.seguradora}</p>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
 
                       <div className="border-t border-gray-100 pt-3 space-y-2">
