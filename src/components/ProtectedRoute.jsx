@@ -23,7 +23,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     return <Navigate to="/unauthorized" replace />;
   }
 
-  if (!user.aceite_termos && location.pathname !== '/termos-aceite') {
+  if (!user.aceite_termos && location.pathname !== '/termos-aceite' && location.pathname !== '/force-change-password') {
     return <Navigate to="/termos-aceite" replace />;
   }
 
