@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { authService } from '@/services/authService';
 import { sendTermosConfirmacaoCliente, sendTermosNotificacaoEmpresa } from '@/services/emailService';
 import { supabase } from '@/lib/customSupabaseClient';

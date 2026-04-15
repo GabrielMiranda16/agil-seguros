@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,7 +21,7 @@ const LoginPage = () => {
   const [isForgotOpen, setIsForgotOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [isSendingReset, setIsSendingReset] = useState(false);
-  const { updateUser } = useAuth(); // Assuming updateUser updates the context state and localStorage
+  const { login } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -30,41 +30,32 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoggingIn(true);
-    
+
     try {
-        const user = await authService.loginUser(email, password);
-        
-        if (!user) {
-          throw new Error('Credenciais inválidas.');
-        }
+      const user = await login(email, password);
 
-        // Remove password from object before saving (authService might already return raw data)
-        const { password: _, ...safeUser } = user;
-        
-        updateUser(safeUser); // Updates context and localStorage
-        
-        toast({
-            title: "Login bem-sucedido!",
-            description: `Bem-vindo de volta, ${user.email}! Redirecionando...`,
-            className: "bg-green-600 border-green-700 text-white"
-        });
+      toast({
+        title: "Login bem-sucedido!",
+        description: `Bem-vindo de volta, ${user.email}! Redirecionando...`,
+        className: "bg-green-600 border-green-700 text-white"
+      });
 
-        if (safeUser.must_change_password) {
-          navigate('/force-change-password');
-        } else if (safeUser.perfil === 'CEO') navigate('/ceo');
-        else if (safeUser.perfil === 'ADM') navigate('/admin');
-        else if (safeUser.perfil === 'CLIENTE') navigate('/select-segmento');
+      if (user.must_change_password) navigate('/force-change-password');
+      else if (user.aceite_termos === false || user.aceite_termos === null) navigate('/termos-aceite');
+      else if (user.perfil === 'CEO') navigate('/ceo');
+      else if (user.perfil === 'ADM') navigate('/admin');
+      else if (user.perfil === 'CLIENTE') navigate('/select-segmento');
     } catch (error) {
-        console.error("Login error caught in component:", error);
-        toast({
-            variant: "destructive",
-            title: "Falha no login",
-            description: error.message === 'Credenciais inválidas.'
-              ? "E-mail ou senha incorretos."
-              : `Erro: ${error.message || JSON.stringify(error)}`,
-        });
+      console.error("Login error caught in component:", error);
+      toast({
+        variant: "destructive",
+        title: "Falha no login",
+        description: error.message === 'Credenciais inválidas.'
+          ? "E-mail ou senha incorretos."
+          : `Erro: ${error.message || JSON.stringify(error)}`,
+      });
     } finally {
-        setIsLoggingIn(false);
+      setIsLoggingIn(false);
     }
   };
 

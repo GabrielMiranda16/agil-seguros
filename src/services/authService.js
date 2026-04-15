@@ -45,6 +45,7 @@ export const authService = {
 
   async createUser(userData) {
     try {
+      const rawPassword = userData.password;
       const cleanedData = cleanUserData(userData);
       if (cleanedData.password) {
         cleanedData.password = await hashPassword(cleanedData.password);
@@ -57,6 +58,12 @@ export const authService = {
         .single();
 
       if (error) throw error;
+
+      // Cria conta no Supabase Auth silenciosamente
+      if (rawPassword && cleanedData.email) {
+        try { await supabase.auth.signUp({ email: cleanedData.email, password: rawPassword }); } catch { /* não crítico */ }
+      }
+
       return data;
     } catch (error) {
       console.error('Create user error:', error);

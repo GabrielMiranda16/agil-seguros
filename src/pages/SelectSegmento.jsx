@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { apolicesService, SEGMENTOS } from '@/services/apolicesService';
 import { authService } from '@/services/authService';
 import { empresasService } from '@/services/empresasService';

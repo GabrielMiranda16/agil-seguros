@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { authService } from '@/services/authService';
+import { supabase } from '@/lib/customSupabaseClient';
 import { validatePasswordStrength } from '@/lib/userValidator';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
@@ -61,6 +62,8 @@ const ForceChangePassword = () => {
     setIsSubmitting(true);
     try {
       await authService.updateUser(user.id, { password: newPassword, must_change_password: false });
+      // Atualiza também no Supabase Auth (silencioso se falhar)
+      try { await supabase.auth.updateUser({ password: newPassword }); } catch { /* não crítico */ }
       updateUser({ ...user, must_change_password: false });
       toast({ title: 'Senha definida com sucesso!', description: 'Bem-vindo ao sistema.' });
       navigate(getHomeRoute());
