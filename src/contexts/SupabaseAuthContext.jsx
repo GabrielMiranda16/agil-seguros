@@ -26,7 +26,12 @@ export const AuthProvider = ({ children }) => {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user?.email) {
           const profile = await fetchProfile(session.user.email);
-          if (profile) setUser(profile);
+          if (profile) { setUser(profile); localStorage.setItem('agil_user', JSON.stringify(profile)); return; }
+        }
+        // Fallback: restaura do localStorage para usuários não migrados ao Supabase Auth
+        const saved = localStorage.getItem('agil_user');
+        if (saved) {
+          try { setUser(JSON.parse(saved)); } catch { localStorage.removeItem('agil_user'); }
         }
       } catch (e) {
         console.error('[Auth] Erro ao restaurar sessão:', e);
@@ -54,10 +59,10 @@ export const AuthProvider = ({ children }) => {
     const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
 
     if (!authError) {
-      // Sucesso — perfil será carregado via onAuthStateChange
       const profile = await fetchProfile(email);
       if (!profile) throw new Error('Usuário não encontrado.');
       setUser(profile);
+      localStorage.setItem('agil_user', JSON.stringify(profile));
       return profile;
     }
 
@@ -76,16 +81,19 @@ export const AuthProvider = ({ children }) => {
 
     const { password: _, ...safeUser } = userData;
     setUser(safeUser);
+    localStorage.setItem('agil_user', JSON.stringify(safeUser));
     return safeUser;
   };
 
   const logout = async () => {
     try { await supabase.auth.signOut(); } catch { /* ignora */ }
+    localStorage.removeItem('agil_user');
     setUser(null);
   };
 
   const updateUser = (userData) => {
     setUser(userData);
+    localStorage.setItem('agil_user', JSON.stringify(userData));
   };
 
   return (
