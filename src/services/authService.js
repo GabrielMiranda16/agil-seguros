@@ -95,6 +95,9 @@ export const authService = {
 
   async deleteUser(id) {
     try {
+      // Remove registros vinculados antes de excluir o usuário
+      await supabase.from('termos_log').delete().eq('user_id', id);
+
       const { error } = await supabase
         .from('users')
         .delete()
